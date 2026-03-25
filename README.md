@@ -1,9 +1,5 @@
-README
+RaCInG
 ================
-Marcelo Hurtado
-2026-03-25
-
-# RaCInG
 
 The random graph model to infer cell-cell communication networks based
 on bulk RNA-seq data.

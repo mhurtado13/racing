@@ -1,11 +1,7 @@
 ---
-title: "README"
-author: "Marcelo Hurtado"
-date: "2026-03-25"
+title: "RaCInG"
 output: github_document
 ---
-
-# RaCInG
 
 The random graph model to infer cell-cell communication networks based on bulk RNA-seq data.
 
