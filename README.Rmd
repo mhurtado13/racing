@@ -1,18 +1,19 @@
-README
-================
-Marcelo Hurtado
-2026-03-25
+---
+title: "README"
+author: "Marcelo Hurtado"
+date: "2026-03-25"
+output: github_document
+---
 
 # RaCInG
 
-The random graph model to infer cell-cell communication networks based
-on bulk RNA-seq data.
+The random graph model to infer cell-cell communication networks based on bulk RNA-seq data.
 
 ## Installation
 
 You can install the development version of `racing` from GitHub with:
 
-``` r
+```r
 # install.packages("devtools")
 devtools::install_github("mhurtado13/racing")
 ```
@@ -21,7 +22,7 @@ devtools::install_github("mhurtado13/racing")
 
 Here is a basic example:
 
-``` r
+```r
 library(racing)
 # Example usage here, e.g.:
 # result <- racing_function(input_data)
@@ -42,4 +43,4 @@ This package is distributed under the GPL-3 license.
 
 ## Author
 
-Developed by \[your name\].
+Developed by [your name].

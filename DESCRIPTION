@@ -1,11 +1,11 @@
 Package: racing
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
+Title: Random Graph Model for Cell-Cell Communication Networks
+Version: 0.1.0
 Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+    person("Your", "Name", email = "your@email.com", role = c("aut", "cre"))
+Description: The random graph model to infer cell-cell communication networks based on bulk RNA-seq data.
+License: GPL-3
 Encoding: UTF-8
-Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
+LazyData: true
+VignetteBuilder: knitr
+Suggests: knitr, rmarkdown
