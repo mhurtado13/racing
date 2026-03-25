@@ -1,11 +1,21 @@
-Package: racing
-Title: Random Graph Model for Cell-Cell Communication Networks
+Package: RaCInG
+Type: Package
+Title: R Analysis of Cell Interactions and Graphs (RaCInG)
 Version: 0.1.0
 Authors@R: 
-    person("Your", "Name", email = "your@email.com", role = c("aut", "cre"))
-Description: The random graph model to infer cell-cell communication networks based on bulk RNA-seq data.
-License: GPL-3
+    person("First", "Last", email = "your_email@example.com", role = c("aut", "cre"))
+Description: Provides functions for reading cell-ligand and cell-receptor data, generating interaction tensors, computing triangle and graphlet distributions, and normalizing graph-based statistics for cancer datasets.
+License: MIT
 Encoding: UTF-8
 LazyData: true
+Imports:
+    data.table,
+    dplyr,
+    tibble,
+    tidyr,
+    Matrix
+Suggests:
+    knitr,
+    rmarkdown
 VignetteBuilder: knitr
-Suggests: knitr, rmarkdown
+RoxygenNote: 7.2.2

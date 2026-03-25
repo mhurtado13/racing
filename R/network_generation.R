@@ -2,8 +2,6 @@
 # Generates one graph realization of RaCInG based on input distributions
 # Dependencies: base R, no class construction
 
-library(abind)  # for array binding if needed
-
 # -------------------------------------------------------------
 # Function: genRandomCellTypeDistr
 # Generates a random cell-type distribution
