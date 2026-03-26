@@ -7,7 +7,7 @@ output: html_document
 
 Load input
 ```{r}
-source("RaCInG_input_generation.R")
+source("../R/RaCInG_input_generation.R")
 
 # Call the function
 res <- generateInput("min", "SKCM", folder = "~/Documents/RaCInG/Python_Code/Example input")
@@ -24,7 +24,7 @@ recs      <- res$receptors
 
 Network generation
 ```{r}
-source("network_generation.R")
+source("../R/network_generation.R")
 # -------------------------------------------------------------
 # Estimated running time: less than 1 second
 # -------------------------------------------------------------
@@ -65,13 +65,13 @@ print(types)
 
 Generate uniform LRdistr 
 ```{r}
-source("network_generation.R")
+source("../R/network_generation.R")
 graphData <- generateUniformLRGraph(LRdistr, Lmatrix, Rmatrix, Cdistr, cellTypes, patient = 1, N = 20, avdeg = 2)
 ```
 
 Features extraction
 ```{r}
-source("Utilities.R")
+source("../R/Utilities.R")
 # Convert edge list to adjacency matrices
 Adj <- EdgetoAdj(E, length(V))          # retains self-loops
 AdjNoLoop <- EdgetoAdj_No_loop(E, length(V))  # removes self-loops
@@ -85,7 +85,7 @@ print(AdjNoLoop)  # self-loops removed
 ```
 
 ```{r}
-source("feature_extraction.R")
+source("../R/feature_extraction.R")
 # Compute features using your R implementations
 tt_res <- Trust_Triangles(AdjNoLoop)
 ct_res <- Cycle_Triangles(AdjNoLoop)
@@ -122,7 +122,7 @@ print(typeCount)
 
 Monte Carlo
 ```{r}
-source("Monte_Carlo_Method.R")
+source("../R/Monte_Carlo_Method.R")
 # ------------------------------------------------------------
 # Set random seed for reproducibility
 # ------------------------------------------------------------
@@ -169,16 +169,34 @@ runSim(
 ```
 
 ```{r}
-source("txt_to_csv.R")
+source("../R/txt_to_csv.R")
 # Call the function in R
 Generate_normalised_count_csv(
   cancer_type = "SKCM",
   weight_type = "min",
-  triangle_types = "W",
+  triangle_type = "W",
   average = 3,
   noCells = 1000,
   folder = "~/Documents/RaCInG/Python_Code/Example input",
-  remove_direction = TRUE
+  remove_direction = TRUE,
+  output_folder = "~/Documents/racing/vignettes/"
 )
+```
+
+Kernel method
+```{r}
+source("../R/Kernel_Method.R")# -----------------------------
+# Take only first two patients
+# -----------------------------
+Cdistr_sub  <- Cdistr[1:2, , drop = FALSE]
+LRdistr_sub <- LRdistr[,,1:2, drop = FALSE]
+
+# -----------------------------
+# Calculate kernel
+# -----------------------------
+out <- Calculate_kernel(Lmatrix, Rmatrix, Cdistr_sub, LRdistr_sub, normalize = FALSE)
+
+# Print kernel for first patient (R is 1-indexed, first patient = slice 1)
+print(out[,,1])
 ```
 
