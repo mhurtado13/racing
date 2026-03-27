@@ -147,7 +147,7 @@ runSim(
   cancer_type = "SKCM",
   weight_type = "min",
   communication_type = "W",
-  pats = 2,
+  pats = 10,
   N = 11,
   itNo = 2,
   av = 3,
@@ -159,7 +159,7 @@ runSim(
   cancer_type = "SKCM",
   weight_type = "min",
   communication_type = "W",
-  pats = 2,
+  pats = 10,
   N = 11,
   itNo = 2,
   av = 3,
@@ -188,15 +188,40 @@ Kernel method
 source("../R/Kernel_Method.R")# -----------------------------
 # Take only first two patients
 # -----------------------------
-Cdistr_sub  <- Cdistr[1:2, , drop = FALSE]
-LRdistr_sub <- LRdistr[,,1:2, drop = FALSE]
+Cdistr_sub  <- Cdistr[1:10, , drop = FALSE]
+LRdistr_sub <- LRdistr[,,1:10, drop = FALSE]
 
 # -----------------------------
 # Calculate kernel
 # -----------------------------
-out <- Calculate_kernel(Lmatrix, Rmatrix, Cdistr_sub, LRdistr_sub, normalize = FALSE)
+out <- compute_kernel(Lmatrix, Rmatrix, Cdistr_sub, LRdistr_sub, normalize = FALSE)
 
 # Print kernel for first patient (R is 1-indexed, first patient = slice 1)
 print(out[,,1])
+
+kernel <- compute_kernel(
+  liglist = Lmatrix,
+  reclist = Rmatrix,
+  Dcell   = Cdistr,
+  Dconn   = LRdistr
+)
+```
+
+Statistical analysis
+```{r}
+source("../R/statistical_analysis.R")
+results = read.csv("~/Documents/racing/vignettes/SKCM_W_1000_cells_3_deg_data.csv", row.names = 1)
+# Suppose you have a vector of group labels
+grouping <- rep(c("Group1", "Group2"), 5)  # length must match nrow(results)
+
+# Run the Wilcoxon tests
+wilcox_results <- wilcox_group_test(results, grouping)
+
+# View top significant features
+head(wilcox_results)
+
+# Assuming wilcox_results is your data frame
+volcano_plot(wilcox_results, top_labels = 15, p_threshold = 1, 
+                         title = "SKCM Wilcoxon Volcano Plot")
 ```
 
