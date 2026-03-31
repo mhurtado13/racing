@@ -211,9 +211,7 @@ Read_Lig_Rec_Interaction <- function(filename) {
 # ================================
 # 7. generateInput
 # ================================
-generateInput <- function(weight_type, cancer_name,
-                          read_signs = FALSE,
-                          folder = "Example input") {
+generateInput <- function(file_name, output_folder, read_signs = FALSE) {
   
   # -----------------------------
   # Read cell-to-ligand compatibility information
@@ -222,7 +220,8 @@ generateInput <- function(weight_type, cancer_name,
   #   ligands: vector of ligand names
   #   celltypes: vector of cell type names (alphabetically sorted)
   # -----------------------------
-  lig_data <- createCellLigList(file.path(folder, "celltype_ligand.csv"))
+  lig_path = paste0(output_folder, "Lmatrix_", file_name, ".csv")
+  lig_data <- createCellLigList(lig_path)
   
   # -----------------------------
   # Read cell-to-receptor compatibility information
@@ -231,7 +230,8 @@ generateInput <- function(weight_type, cancer_name,
   #   receptors: vector of receptor names
   #   celltypes: vector of cell type names (alphabetically sorted)
   # -----------------------------
-  rec_data <- createCellRecList(file.path(folder, "celltype_receptor.csv"))
+  rec_path = paste0(output_folder, "Rmatrix_", file_name, ".csv")
+  rec_data <- createCellRecList(rec_path)
   
   # -----------------------------
   # Read cell type distribution per dataset/patient
@@ -240,9 +240,10 @@ generateInput <- function(weight_type, cancer_name,
   #   celltypes: vector of cell types
   #   datasets: vector of dataset/patient names
   # -----------------------------
+  dist_path = paste0(output_folder, "Cmatrix_", file_name, ".csv")
   dist_data <- createCellTypeDistr(
     cells = lig_data$celltypes,
-    filename = file.path(folder, paste0(cancer_name, "_TMEmod_cell_fractions.csv"))
+    filename = dist_path
   )
   
   # -----------------------------
@@ -250,12 +251,14 @@ generateInput <- function(weight_type, cancer_name,
   # The function returns:
   #   DconnectionTensor: 3D array (ligands x receptors x datasets) of interaction probabilities
   # -----------------------------
+  lr_path = paste0(output_folder, "LRmatrix_", file_name, ".csv")
   DconnectionTensor <- createInteractionDistr(
-    filename = file.path(folder, paste0(cancer_name, "_LRpairs_weights_", weight_type, ".csv")),
+    filename = lr_path,
     ligands = lig_data$ligands,
     receptors = rec_data$receptors
   )
   
+  ################################# TO BE DONE
   # -----------------------------
   # Optionally read the sign of interactions (+1 stimulating, -1 inhibiting, 0 unknown)
   # If read_signs = FALSE, create a matrix of zeros (unknown)
@@ -276,10 +279,10 @@ generateInput <- function(weight_type, cancer_name,
   # Return all input data in a list for use in the network generation model
   # -----------------------------
   return(list(
-    CellLigList = lig_data$CellLigList,       # cell-ligand compatibility matrix
-    CellRecList = rec_data$CellRecList,       # cell-receptor compatibility matrix
-    Dtypes = dist_data$Dtypes,                # normalized cell type distributions
-    DconnectionTensor = DconnectionTensor,    # ligand-receptor interaction tensor
+    Lmatrix = lig_data$CellLigList,       # cell-ligand compatibility matrix
+    Rmatrix = rec_data$CellRecList,       # cell-receptor compatibility matrix
+    Cmatrix = dist_data$Dtypes,                # normalized cell type distributions
+    LRmatrix = DconnectionTensor,    # ligand-receptor interaction tensor
     celltypes = lig_data$celltypes,           # vector of cell type names
     ligands = lig_data$ligands,               # vector of ligand names
     receptors = rec_data$receptors,           # vector of receptor names
@@ -287,21 +290,133 @@ generateInput <- function(weight_type, cancer_name,
   ))
 }
 
-# ================================
-# 8. get_patient_names
-# ================================
-get_patient_names <- function(cancer_type,
-                              folder = "Example input") {
+prepare_input_files <- function(counts, output_folder = "Results/", deconv = NULL, cc_network = NULL, fun_LR = min, 
+                                cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol",
+                                deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL){
   
-  current_path <- getwd()
+  counts.tpm = ADImpute::NormalizeTPM(counts)
+  counts.log.tpm <- log2(counts + 1)
+
+  cat("Calculating deconvolution estimates...\n")
+  ## C-matrix
+  if(is.null(deconv)){
+    deconv <- multideconv::compute.deconvolution(counts.tpm, normalized = F, methods = deconv_method, 
+                                                 credentials.mail = cbsx.name, credentials.token = cbsx.token, 
+                                                 file_name = file_name)
+  }else{
+    cat("Using provided deconvolution estimates...\n")
+  }
   
-  lig_data <- createCellLigList(file.path(current_path, folder, "celltype_ligand.csv"))
+  ## Cell type expression profiles
+  cat("\nEstimating cell type expression profiles...\n")
+  if(is.null(cell_expr_profile)){
+    expr_counts <- estimate_expression_profiles(counts, deconv)
+    cell_expr_profile <- rbind(sapply(expr_counts, function(x) colMeans(x))) %>% as.data.frame()
+  }
+
+  ## Verify if patients names match between files
+  if(!all(rownames(deconv) %in% colnames(counts))){
+    stop("Patient names in deconvolution estimates do not match those in the counts matrix.")
+  }
+  if(!all(rownames(deconv) %in% colnames(cell_expr_profile))){
+    stop("Patient names in deconvolution estimates do not match those in the cell expression profile.")
+  }
   
-  dist_data <- createCellTypeDistr(
-    lig_data$celltypes,
-    file.path(current_path, folder,
-              paste0(cancer_type, "_TMEmod_cell_fractions.csv"))
+
+  ## Prior knowledge network CC
+  cat("Processing cell-cell interaction network...\n")
+  if(is.null(cc_network)){
+    cc_network <- OmnipathR::import_intercell_network(high_confidence = TRUE) %>%
+      dplyr::filter(category_intercell_source %in% c("cell_surface_ligand", "ligand") &
+                    category_intercell_target %in% c("receptor", "adhesion")) %>%
+      liana::decomplexify(columns = c("source_genesymbol", "target_genesymbol"))
+  }else{
+    cc_network = cc_network %>%
+      dplyr::mutate(source_genesymbol = .data[[source]], target_genesymbol = .data[[target]])
+  }
+  
+  ## Subset expression for LR pairs (keep only interactions present in cell_expr_profile)
+  keep <- integer()
+  for (i in seq_len(nrow(cc_network))) {
+    ligand  <- cc_network$source_genesymbol[i]
+    receptor <- cc_network$target_genesymbol[i]
+    if (ligand %in% rownames(cell_expr_profile) & receptor %in% rownames(cell_expr_profile)) {
+      keep <- c(keep, i)
+    }
+  }
+  cc_interations_sub <- cc_network[keep, , drop = FALSE]
+  
+  ## Build CC table (Sender x each LR pair x Receiver)
+  ccc_table <- do.call(rbind, lapply(colnames(cell_expr_profile), function(cell_type) {
+    do.call(rbind, lapply(seq_len(nrow(cc_interations_sub)), function(LR_pos) {
+      L <- cc_interations_sub$source_genesymbol[LR_pos]
+      R <- cc_interations_sub$target_genesymbol[LR_pos]
+      data.frame(
+        Sender = cell_type,
+        Ligand = L,
+        Expr_Ligand = as.numeric(cell_expr_profile[L, cell_type]),
+        Receiver = colnames(cell_expr_profile),
+        Receptor = R,
+        Expr_Receptor = as.numeric(cell_expr_profile[R, ])
+      )
+    }))
+  })) %>%
+    dplyr::filter(Expr_Ligand >= 10 & Expr_Receptor >= 10) ## Keep only pairs expressed above threshold (TPM >= 10)
+  
+  receptors <- unique(ccc_table$Receptor)
+  ligands <- unique(ccc_table$Ligand)
+  LR_pairs <- paste0(ligands, "_", receptors)
+
+  ## LR-matrix: compute fun(L, R) per sample using counts (rows=genes, cols=samples): Default min(L,R)
+  cat("Computing LR matrix...\n")
+  pos_lr <- match(c(rbind(ligands, receptors)), rownames(counts.log.tpm))
+  pos_lr <- matrix(pos_lr, nrow = 2)
+  
+  LR_matrix <- apply(pos_lr, 2, function(idx) {
+    if (any(is.na(idx))) {
+      return(rep(NA, ncol(counts.log.tpm)))
+    }
+    apply(counts.log.tpm[idx, , drop = FALSE], 2, function(x) fun_LR(x))
+  })
+  colnames(LR_matrix) <- LR_pairs
+  rownames(LR_matrix) <- gsub(".", "-", rownames(LR_matrix), fixed = TRUE)
+  
+  ## L-matrix: ligands vs cell types compatibility (from filtered cc table)
+  cat("Computing L-matrix...\n")
+  celltypes <- unique(ccc_table$Sender)
+  ligs <- unique(ccc_table$Ligand)
+  Lmatrix <- matrix(0, nrow = length(celltypes), ncol = length(ligs),
+                    dimnames = list(celltypes, ligs))
+  for (ct in celltypes) {
+    tmp <- ccc_table %>% filter(Sender == ct) %>% select(Ligand) %>% unique()
+    Lmatrix[ct, tmp$Ligand] <- 1
+  }
+  
+  ## R-matrix: receptors vs cell types compatibility
+  cat("Computing R-matrix...\n")
+  recs <- unique(ccc_table$Receptor)
+  Rmatrix <- matrix(0, nrow = length(celltypes), ncol = length(recs),
+                    dimnames = list(celltypes, recs))
+  for (ct in celltypes) {
+    tmp <- ccc_table %>% filter(Receiver == ct) %>% select(Receptor) %>% unique()
+    Rmatrix[ct, tmp$Receptor] <- 1
+  }
+  
+  ## Output files
+  cat("Exporting input files for RaCiNG...\n")
+  if (!dir.exists(output_folder)) dir.create(output_folder, recursive = TRUE)
+  write.csv(Lmatrix, file.path(output_folder, paste0("Lmatrix_", file_name, ".csv")))
+  write.csv(Rmatrix, file.path(output_folder, paste0("Rmatrix_", file_name, ".csv")))
+  write.csv(deconv, file.path(output_folder, paste0("Cmatrix_", file_name, ".csv")))
+  write.csv(LR_matrix, file.path(output_folder, paste0("LRmatrix_", file_name, ".csv")))
+  write.csv(ccc_table, file.path(output_folder, paste0("CC_table_", file_name, ".csv")), row.names = FALSE)
+  
+  cat("Input files generated and saved to:", output_folder, "\n")
+  list(
+    Lmatrix = Lmatrix,
+    Rmatrix = Rmatrix,
+    Cmatrix = deconv,
+    LRmatrix = LR_matrix,
+    CC_table = ccc_table
   )
-  
-  return(dist_data$datasets)
 }

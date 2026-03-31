@@ -21,7 +21,7 @@ countWedges <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
     Adj <- EdgetoAdj(E, length(V))
     
     # --- CALL THE EXISTING WEDGES FUNCTION ---
-    wedge_result <- Wedges(Adj)   # <- this uses your already defined function
+    wedge_result <- Wedges(Adj)   # <- this uses already defined function
     
     # Store total number of wedges
     trianglecount[i] <- wedge_result$NoWedges
@@ -262,148 +262,136 @@ countGSCC <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
 # ------------------------------------------------------------
 # Run one patient simulation
 # ------------------------------------------------------------
-runSimOne <- function(cancer_type, weight_type, communication_type, pat,
-                      N = 10000, itNo = 100, av = 20,
-                      norm = FALSE, folder = "Input_data_RaCInG") {
+# runSimOne <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_type, pat,
+#                       N = 10000, itNo = 100, av = 20,
+#                       norm = FALSE) {
   
-  # ------------------------------------------------------------
-  # Purpose: Generate random graphs for one patient, extract
-  #          network features (edges, wedges, triangles, GSCC),
-  #          and print the results.
-  # Inputs:
-  #   cancer_type        : string, cancer type identifier
-  #   weight_type        : string, weight type for interaction distribution
-  #   communication_type : string, which feature to extract
-  #                        ("D", "W", "TT", "CT", "GSCC")
-  #   pat                : integer, patient index
-  #   N                  : number of cells per graph (default 10000)
-  #   itNo               : number of random graphs to generate (default 100)
-  #   av                 : average degree per cell (default 20)
-  #   norm               : logical, whether to normalize interactions
-  #   folder             : folder path for input files
-  # Outputs:
-  #   Prints summary results and returns them invisibly
-  # ------------------------------------------------------------
+#   # ------------------------------------------------------------
+#   # Purpose: Generate random graphs for one patient, extract
+#   #          network features (edges, wedges, triangles, GSCC),
+#   #          and print the results.
+#   # Inputs:
+#   #   communication_type : string, which feature to extract
+#   #                        ("D", "W", "TT", "CT", "GSCC")
+#   #   pat                : integer, patient index
+#   #   N                  : number of cells per graph (default 10000)
+#   #   itNo               : number of random graphs to generate (default 100)
+#   #   av                 : average degree per cell (default 20)
+#   #   norm               : logical, whether to normalize interactions
+#   #   folder             : folder path for input files
+#   # Outputs:
+#   #   Prints summary results and returns them invisibly
+#   # ------------------------------------------------------------
   
-  # Generate input matrices and vectors for this cancer type
-  input <- generateInput(weight_type, cancer_type, folder = folder)
-  lig <- input$CellLigList        # cell-ligand compatibility matrix
-  rec <- input$CellRecList        # cell-receptor compatibility matrix
-  Dcell <- input$Dtypes           # cell type distribution per patient
-  Dconn <- input$DconnectionTensor # ligand-receptor interaction tensor
-  cells <- input$celltypes        # vector of cell type names
+#   # Extract data for the specific patient
+#   CellD <- Cmatrix[pat, ]           # patient-specific cell fractions
+#   IntD  <- LRmatrix[,,pat]          # patient-specific ligand-receptor interactions
   
-  # Extract data for the specific patient
-  CellD <- Dcell[pat, ]           # patient-specific cell fractions
-  IntD  <- Dconn[,,pat]           # patient-specific ligand-receptor interactions
+#   # Optionally normalize interaction distribution
+#   if(norm){
+#     normvec <- 1/sum(IntD != 0)
+#     IntD[IntD != 0] <- normvec
+#   }
   
-  # Optionally normalize interaction distribution
-  if(norm){
-    normvec <- 1/sum(IntD != 0)
-    IntD[IntD != 0] <- normvec
-  }
-  
-  # ------------------------------------------------------------
-  # Depending on communication type, extract the corresponding feature
-  # ------------------------------------------------------------
-  if (communication_type == "D") {
-    # Direct edges
-    res <- countDirect(CellD, IntD, lig, rec, cells, N, av, itNo)
+#   # ------------------------------------------------------------
+#   # Depending on communication type, extract the corresponding feature
+#   # ------------------------------------------------------------
+#   if (communication_type == "D") {
+#     # Direct edges
+#     res <- countDirect(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
     
-  } else if (communication_type == "W") {
-    # Wedges (2-step chains)
-    res <- countWedges(CellD, IntD, lig, rec, cells, N, av, itNo)
+#   } else if (communication_type == "W") {
+#     # Wedges (2-step chains)
+#     res <- countWedges(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
     
-  } else if (communication_type == "TT") {
-    # Trust triangles (open-to-closed triads)
-    res <- countTrustTriangles(CellD, IntD, lig, rec, cells, N, av, itNo)
+#   } else if (communication_type == "TT") {
+#     # Trust triangles (open-to-closed triads)
+#     res <- countTrustTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
     
-  } else if (communication_type == "GSCC") {
-    # Giant strongly connected component
-    res <- countGSCC(CellD, IntD, lig, rec, cells, N, av, itNo)
+#   } else if (communication_type == "GSCC") {
+#     # Giant strongly connected component
+#     res <- countGSCC(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
     
-  } else {
-    # Cycle triangles (closed loops)
-    res <- countCycleTriangles(CellD, IntD, lig, rec, cells, N, av, itNo)
-  }
+#   } else {
+#     # Cycle triangles (closed loops)
+#     res <- countCycleTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#   }
   
-  # Return the results invisibly (so it can be captured if needed)
-  return(invisible(res))
-}
+#   # Return the results invisibly (so it can be captured if needed)
+#   return(invisible(res))
+# }
 
-runSim <- function(cancer_type, weight_type, communication_type, pats = "all",
-                   N = 10000, itNo = 100, av = 20,
-                   norm = FALSE, folder = "Input_data_RaCInG") {
+runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_type, pats = "all",
+                   N = 10000, itNo = 100, av = 20, output_folder = NULL, file.name = NULL, norm = FALSE,
+                   patient_idx = NULL) {
   
-  # Load input data
-  input <- generateInput(weight_type, cancer_type, folder = folder)
-  
-  lig   <- input$CellLigList
-  rec   <- input$CellRecList
-  Dcell <- input$Dtypes
-  Dconn <- input$DconnectionTensor
-  cells <- input$celltypes
   
   cellstring <- paste(cells, collapse = ",")
   
   # Normalization
   if (norm) {
-    normvec <- 1 / apply(Dconn != 0, 3, sum)
-    for (i in 1:dim(Dconn)[3]) {
-      Dconn[,,i][Dconn[,,i] != 0] <- normvec[i]
+    normvec <- 1 / apply(LRmatrix != 0, 3, sum)
+    for (i in 1:dim(LRmatrix)[3]) {
+      LRmatrix[,,i][LRmatrix[,,i] != 0] <- normvec[i]
     }
-    filename <- paste0(cancer_type, "_", communication_type, "_", av, "_norm.out")
+    filename <- paste0(output_folder, "/", file.name, "_norm.out")
   } else {
-    filename <- paste0(cancer_type, "_", communication_type, "_", av, ".out")
+    filename <- paste0(output_folder, "/", file.name, ".out")
   }
   
-  # Number of patients
-  if (pats == "all") {
-    limit <- nrow(Dcell)
+  # Determine which patient(s) to process.
+  # If patient_idx is provided, use that specific patient (not the same as pats = 1).
+  if (!is.null(patient_idx)) {
+    if (length(patient_idx) != 1 || patient_idx < 1 || patient_idx > nrow(Cmatrix)) {
+      stop("patient_idx must be a single integer between 1 and nrow(Cmatrix)")
+    }
+    pat_seq <- patient_idx
+  } else if (pats == "all") {
+    pat_seq <- 1:nrow(Cmatrix)
   } else {
-    limit <- pats
+    pat_seq <- seq_len(pats)
   }
   
   con <- file(filename, open = "w")
   
   # Header
   writeLines(communication_type, con)
-  writeLines(paste(cancer_type, weight_type, nrow(Dcell), N, itNo, av, sep=","), con)
+  writeLines(paste(nrow(Cmatrix), N, itNo, av, sep=","), con)
   
   # ------------------------------------------------------------
-  # Loop over patients
+  # Loop over patients (pat_seq may be a single index or a sequence)
   # ------------------------------------------------------------
-  for (pat in 1:limit) {
+  for (pat in pat_seq) {
     
     writeLines(paste(pat, N, av, sep=","), con)
     writeLines(cellstring, con)
     
-    CellD <- Dcell[pat, ]
-    IntD  <- Dconn[,,pat]
+    CellD <- Cmatrix[pat, ]
+    IntD  <- LRmatrix[,,pat]
     
     # Compute feature
     if (communication_type == "D") {
-      res <- countDirect(CellD, IntD, lig, rec, cells, N, av, itNo)
+      res <- countDirect(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
       av_mat <- res$av_dir
       std_mat <- res$std_dir
       
     } else if (communication_type == "W") {
-      res <- countWedges(CellD, IntD, lig, rec, cells, N, av, itNo)
+      res <- countWedges(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
       av_mat <- res$av_triag
       std_mat <- res$std_triag
       
     } else if (communication_type == "TT") {
-      res <- countTrustTriangles(CellD, IntD, lig, rec, cells, N, av, itNo)
+      res <- countTrustTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
       av_mat <- res$av_triag
       std_mat <- res$std_triag
       
     } else if (communication_type == "GSCC") {
-      res <- countGSCC(CellD, IntD, lig, rec, cells, N, av, itNo)
+      res <- countGSCC(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
       av_vec <- res$av_GSCC
       std_vec <- res$std_GSCC
       
     } else {
-      res <- countCycleTriangles(CellD, IntD, lig, rec, cells, N, av, itNo)
+      res <- countCycleTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
       av_mat <- res$av_triag
       std_mat <- res$std_triag
     }
@@ -465,4 +453,211 @@ runSim <- function(cancer_type, weight_type, communication_type, pats = "all",
   }
   
   close(con)
+}
+# runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_type, pats = "all",
+#                    N = 10000, itNo = 100, av = 20, output_folder = NULL, file.name = NULL,norm = FALSE) {
+  
+  
+#   cellstring <- paste(cells, collapse = ",")
+  
+#   # Normalization
+#   if (norm) {
+#     normvec <- 1 / apply(LRmatrix != 0, 3, sum)
+#     for (i in 1:dim(LRmatrix)[3]) {
+#       LRmatrix[,,i][LRmatrix[,,i] != 0] <- normvec[i]
+#     }
+#     filename <- paste0(output_folder, "/", file.name, "_norm.out")
+#   } else {
+#     filename <- paste0(output_folder, "/", file.name, ".out")
+#   }
+  
+#   # Number of patients
+#   if (pats == "all") {
+#     limit <- nrow(Cmatrix)
+#   } else {
+#     limit <- pats
+#   }
+  
+#   con <- file(filename, open = "w")
+  
+#   # Header
+#   writeLines(communication_type, con)
+#   writeLines(paste(nrow(Cmatrix), N, itNo, av, sep=","), con)
+  
+#   # ------------------------------------------------------------
+#   # Loop over patients
+#   # ------------------------------------------------------------
+#   for (pat in 1:limit) {
+    
+#     writeLines(paste(pat, N, av, sep=","), con)
+#     writeLines(cellstring, con)
+    
+#     CellD <- Cmatrix[pat, ]
+#     IntD  <- LRmatrix[,,pat]
+    
+#     # Compute feature
+#     if (communication_type == "D") {
+#       res <- countDirect(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#       av_mat <- res$av_dir
+#       std_mat <- res$std_dir
+      
+#     } else if (communication_type == "W") {
+#       res <- countWedges(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#       av_mat <- res$av_triag
+#       std_mat <- res$std_triag
+      
+#     } else if (communication_type == "TT") {
+#       res <- countTrustTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#       av_mat <- res$av_triag
+#       std_mat <- res$std_triag
+      
+#     } else if (communication_type == "GSCC") {
+#       res <- countGSCC(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#       av_vec <- res$av_GSCC
+#       std_vec <- res$std_GSCC
+      
+#     } else {
+#       res <- countCycleTriangles(CellD, IntD, Lmatrix, Rmatrix, cells, N, av, itNo)
+#       av_mat <- res$av_triag
+#       std_mat <- res$std_triag
+#     }
+    
+#     # Write counts
+#     writeLines(paste("Count", res$av_count, res$std_count, sep=","), con)
+    
+#     # ------------------------------------------------------------
+#     # Write composition
+#     # ------------------------------------------------------------
+#     if (communication_type == "D") {
+      
+#       writeLines("Composition - Average:", con)
+#       for (i in 1:nrow(av_mat)) {
+#         for (j in 1:ncol(av_mat)) {
+#           writeLines(paste(i, j, av_mat[i,j], sep=","), con)
+#         }
+#       }
+      
+#       writeLines("Composition - Std:", con)
+#       for (i in 1:nrow(std_mat)) {
+#         for (j in 1:ncol(std_mat)) {
+#           writeLines(paste(i, j, std_mat[i,j], sep=","), con)
+#         }
+#       }
+      
+#     } else if (communication_type == "GSCC") {
+      
+#       writeLines("Composition - Average:", con)
+#       for (i in 1:length(av_vec)) {
+#         writeLines(paste(i, av_vec[i], sep=","), con)
+#       }
+      
+#       writeLines("Composition - Std:", con)
+#       for (i in 1:length(std_vec)) {
+#         writeLines(paste(i, std_vec[i], sep=","), con)
+#       }
+      
+#     } else {
+      
+#       writeLines("Composition - Average:", con)
+#       for (i in 1:dim(av_mat)[1]) {
+#         for (j in 1:dim(av_mat)[2]) {
+#           for (k in 1:dim(av_mat)[3]) {
+#             writeLines(paste(i, j, k, av_mat[i,j,k], sep=","), con)
+#           }
+#         }
+#       }
+      
+#       writeLines("Composition - Std:", con)
+#       for (i in 1:dim(std_mat)[1]) {
+#         for (j in 1:dim(std_mat)[2]) {
+#           for (k in 1:dim(std_mat)[3]) {
+#             writeLines(paste(i, j, k, std_mat[i,j,k], sep=","), con)
+#           }
+#         }
+#       }
+#     }
+#   }
+  
+#   close(con)
+# }
+
+compute_racing_montecarlo = function(counts, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
+                                     cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol", signed = FALSE,
+                                     deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, pt_idx = NULL, file_name = NULL,
+                                     nPatients = "all", communication_type = "W", Ncells = 10000, Ngraphs = 100, Ndegree = 20, remove_direction = TRUE, norm = TRUE) {
+  
+  input_files = prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
+                                   cell_expr_profile = cell_expr_profile, source = source, target = target,
+                                   deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
+
+  res <- generateInput(file_name, output_folder = output_folder, read_signs = signed)
+
+  Lmatrix   <- res$Lmatrix
+  Rmatrix   <- res$Rmatrix
+  Cmatrix    <- res$Cmatrix
+  LRmatrix   <- res$LRmatrix
+  cellTypes <- res$celltypes
+  ligs      <- res$ligands
+  recs      <- res$receptors
+
+  if (!is.null(pt_idx)) {
+    cat("Because patient index is provided, nPatients argument will be ignored.\n")
+    cat("Running Monte Carlo simulation for patient index:", pt_idx, "\n")}
+  else{
+    cat("Running Monte Carlo simulation for ", ifelse(nPatients == "all", "all", nPatients), " patients\n")
+  }
+
+
+  runSim(
+    Lmatrix = Lmatrix,
+    Rmatrix = Rmatrix,
+    Cmatrix = Cmatrix,
+    LRmatrix = LRmatrix,
+    cells = cellTypes,
+    communication_type = communication_type,
+    pats = nPatients,
+    N = Ncells,
+    itNo = Ngraphs,
+    av = Ndegree,
+    output_folder = output_folder,
+    file.name = file_name,
+    norm = norm,
+    patient_idx = pt_idx
+  )
+
+  if(norm){
+    runSim(
+      Lmatrix = Lmatrix,
+      Rmatrix = Rmatrix,
+      Cmatrix = Cmatrix,
+      LRmatrix = LRmatrix,
+      cells = cellTypes,
+      communication_type = communication_type,
+      pats = nPatients,
+      N = Ncells,
+      itNo = Ngraphs,
+      av = Ndegree,
+      output_folder = output_folder,
+      file.name = file_name,
+      norm = norm,
+      patient_idx = pt_idx
+    )
+  }
+  
+  cat("Processing interaction distribution and generating CSV output...\n")
+
+  res = compute_results_processing(
+    celltypes = cellTypes,
+    patient_names = rownames(Cmatrix), 
+    triangle_type = communication_type,
+    sim_raw_file = paste0(output_folder, "/", file_name, ".out"),
+    sim_norm_file = if(norm) paste0(output_folder, "/", file_name, "_norm.out") else NULL,
+    remove_direction = remove_direction,
+    normalized = norm,
+    output_folder = output_folder,
+    file.name = paste0(file_name, ".csv")
+  )
+  
+  return(list(input = list(LRmatrix = LRmatrix, Lmatrix = Lmatrix, Rmatrix = Rmatrix, Cmatrix = Cmatrix, cellTypes = cellTypes, ligs = ligs, recs = recs), output = res))
+
 }

@@ -6,35 +6,40 @@
 library(Matrix)
 library(pracma)  # for root finding similar to scipy.optimize.root
 
-compute_kernel <- function(liglist, reclist, Dcell, Dconn, normalize = FALSE) {
+compute_kernel <- function(liglist, reclist, Cmatrix, LRmatrix, normalize = FALSE) {
   # liglist:   [num_genes × num_ligands] binary/weighted matrix mapping genes to ligands
   # reclist:   [num_genes × num_receptors] binary/weighted matrix mapping genes to receptors
-  # Dcell:     [num_patients × num_genes] cell type abundances for each patient
-  # Dconn:     [num_ligands × num_receptors × num_patients] ligand–receptor interaction strengths for each patient
-  # normalize: if TRUE, normalize Dconn so that each patient has the same total interaction strength
+  # Cmatrix:     [num_patients × num_genes] cell type abundances for each patient
+  # LRmatrix:     [num_ligands × num_receptors × num_patients] ligand–receptor interaction strengths for each patient
+  # normalize: if TRUE, normalize LRmatrix so that each patient has the same total interaction strength
+  #
+  # Return:
+  #  - if normalize == FALSE: kernel array [sender x receiver x patient]
+  #  - if normalize == TRUE: list(kernel = unnormalized_kernel, kernel_norm = normalized_kernel)
 
   # Ensure matrix format
-  Dcell <- if (is.null(dim(Dcell))) matrix(Dcell, nrow = 1) else Dcell
+  Cmatrix <- if (is.null(dim(Cmatrix))) matrix(Cmatrix, nrow = 1) else Cmatrix
+  n_patients <- nrow(Cmatrix)
+  n_celltypes <- ncol(Cmatrix)
 
-  n_patients <- nrow(Dcell)
-  n_celltypes <- ncol(Dcell)
-
-  # Optional patient-level normalization of Dconn
+  # Prepare normalized LRmatrix copy if requested (do not overwrite original LRmatrix)
   if (normalize) {
-    normvec <- 1 / apply(Dconn > 0, 3, sum)  # inverse of positive interactions per patient
+    LRmatrix_norm <- LRmatrix
+    normvec <- 1 / apply(LRmatrix_norm > 0, 3, sum)  # inverse of positive interactions per patient
     for (p in 1:n_patients) {
-      copy <- Dconn[, , p]
+      copy <- LRmatrix_norm[, , p]
       copy[copy > 0] <- normvec[p]           # scale positive interactions
-      Dconn[, , p] <- copy
+      LRmatrix_norm[, , p] <- copy
     }
   }
 
   # Output: [sender x receiver x patient]
   kernel <- array(0, dim = c(n_celltypes, n_celltypes, n_patients))
+  if (normalize) kernel_norm <- array(0, dim = c(n_celltypes, n_celltypes, n_patients))
 
   for (p in 1:n_patients) {
 
-    Cvec <- Dcell[p, ]  # cell abundances
+    Cvec <- Cmatrix[p, ]  # cell abundances
 
     ############################# LIGANDS #############################
 
@@ -71,14 +76,14 @@ compute_kernel <- function(liglist, reclist, Dcell, Dconn, normalize = FALSE) {
     # lig_weight:   [cell A × ligand i]
     #   → contribution of each sender cell type A to ligand i
     #
-    # Dconn:        [ligand i × receptor j]
+    # LRmatrix:        [ligand i × receptor j]
     #   → interaction strength between ligand i and receptor j
     #
     # t(rec_weight): [receptor j × cell B]
     #   → contribution of receptor j to receiver cell type B
     #
     # Multiplication order:
-    #   (lig_weight %*% Dconn)        → [cell A × receptor j]
+    #   (lig_weight %*% LRmatrix)        → [cell A × receptor j]
     #   (... %*% t(rec_weight))       → [cell A × cell B]
     #
     # Final result:
@@ -89,11 +94,19 @@ compute_kernel <- function(liglist, reclist, Dcell, Dconn, normalize = FALSE) {
     #   Expected interaction strength from cell type A → cell type B
     #   aggregated over all ligand–receptor pairs
 
-    kernel[, , p] <- lig_weight %*% Dconn[, , p] %*% t(rec_weight)
+    kernel[, , p] <- lig_weight %*% LRmatrix[, , p] %*% t(rec_weight)
 
+    # If requested, compute normalized kernel for this patient using LRmatrix_norm
+    if (normalize) {
+      kernel_norm[, , p] <- lig_weight %*% LRmatrix_norm[, , p] %*% t(rec_weight)
+    }
   }
 
-  return(kernel)
+  if (normalize) {
+    return(list(kernel = kernel, kernel_norm = kernel_norm))
+  } else {
+    return(kernel)
+  }
 }
 
 # --------------------------------------------------------------
@@ -448,4 +461,94 @@ computeTriangles <- function(kernel, cell_names, patient_names,
   rownames(df) <- patient_names
 
   return(df)
+}
+
+compute_kernel_features <- function(kernel, unifKernel = NULL, celltypes, communication_type = "D", bundle = TRUE,
+                                    patient_names = NULL, Dcell = NULL, norm = FALSE, patient_idx = NULL) {
+
+  # Subset patients if requested
+  if (!is.null(patient_idx)) {
+    kernel <- kernel[,,patient_idx, drop = FALSE]
+    if (!is.null(unifKernel)) unifKernel <- unifKernel[,,patient_idx, drop = FALSE]
+    if (!is.null(patient_names)) patient_names <- patient_names[patient_idx]
+    if (!is.null(Dcell)) Dcell <- Dcell[patient_idx, , drop = FALSE]
+  }
+
+  comm <- toupper(communication_type)
+
+  if (comm == "D") {
+    df <- calculateDirect(kernel = kernel, unifKernel = unifKernel, cells = celltypes, bundle = bundle)
+
+  } else if (comm == "W") {
+    df <- calculateWedges(kernel = kernel, unifKernel = unifKernel, cells = celltypes, bundle = bundle)
+
+  } else if (comm == "TT") {
+    # trust triangles (directed): use bundle = FALSE in computeTriangles
+    df <- computeTriangles(kernel = kernel, cell_names = celltypes,
+                           patient_names = if (!is.null(patient_names)) patient_names else paste0("Patient_", seq_len(dim(kernel)[3])),
+                           unifKernel = unifKernel, norm = norm, bundle = FALSE)
+
+  } else if (comm == "GSCC") {
+    if (is.null(Dcell)) stop("Dcell (cell abundance matrix) is required for GSCC computation.")
+    # computeGSCC expects patient_names and Dcell rows == patients
+    df <- computeGSCC(kernel = kernel, Dcell = Dcell,
+                      cell_names = celltypes,
+                      patient_names = if (!is.null(patient_names)) patient_names else paste0("Patient_", seq_len(nrow(Dcell))),
+                      unifKernel = unifKernel, norm = norm)
+
+  } else {
+    stop("Unsupported communication_type. Use D, W, TT, or GSCC.")
+  }
+
+  return(df)
+
+}
+
+compute_racing_kernel = function(counts, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
+                                 cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol", signed = FALSE,
+                                 deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL, nPatients = "all", 
+                                 communication_type = "W", norm = TRUE, pt_idx = NULL, remove_direction = TRUE) {
+
+  input_files = prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
+                                    cell_expr_profile = cell_expr_profile, source = source, target = target,
+                                    deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
+
+  res <- generateInput(file_name, output_folder = output_folder, read_signs = signed)
+
+  Lmatrix   <- res$Lmatrix
+  Rmatrix   <- res$Rmatrix
+  Cmatrix    <- res$Cmatrix
+  LRmatrix   <- res$LRmatrix
+  cellTypes <- res$celltypes
+  ligs      <- res$ligands
+  recs      <- res$receptors
+
+  if(nPatients == "all"){
+    nPatients = ncol(counts)
+  }                        
+
+  if(!is.null(pt_idx)){
+    cat("Because patient index is provided, nPatients argument will be ignored.\n")
+  }else{
+    cat("Computing kernel for ", ifelse(nPatients == "all", "all", nPatients), " patients\n")
+    Cmatrix  <- Cmatrix[1:nPatients, , drop = FALSE]
+    LRmatrix <- LRmatrix[,,1:nPatients, drop = FALSE]
+  }
+
+  # -----------------------------
+  # Calculate kernel
+  # -----------------------------
+  cat("Calculating kernel...\n")
+  
+  res <- compute_kernel(Lmatrix, Rmatrix, Cmatrix, LRmatrix, normalize = norm)
+
+  # -----------------------------
+  # Calculate features
+  # -----------------------------
+  cat("Calculating features...\n")
+  features = compute_kernel_features(res$kernel, res$kernel_norm, celltypes = cellTypes, communication_type = communication_type, 
+                                     bundle = remove_direction, patient_names = colnames(counts), Dcell = Cmatrix, norm = norm, patient_idx = pt_idx)
+
+  return(list(kernel = res, features = features))
+
 }
