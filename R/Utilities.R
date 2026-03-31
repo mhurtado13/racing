@@ -1,8 +1,10 @@
-library(Matrix)  # For sparse matrix
-
-# ---------------------------------------------------------------------------
-# Convert edge list to adjacency matrix
-# ---------------------------------------------------------------------------
+#' Convert an edge list to a sparse adjacency matrix
+#'
+#' @param E Two-column edge list with source and target vertex indices.
+#' @param N Total number of vertices.
+#'
+#' @return A sparse adjacency matrix of class `dgCMatrix`.
+#' @export
 EdgetoAdj <- function(E, N) {
   # E: a two-column matrix where each row represents an edge (from, to)
   #    e.g., E[i,] = c(2,5) means an edge from vertex 2 to vertex 5
@@ -16,7 +18,7 @@ EdgetoAdj <- function(E, N) {
   # - j = column indices (target vertices)
   # - x = 1 for each edge (will be summed automatically if duplicates exist)
   # - dims = dimensions of the adjacency matrix (N x N)
-  Adj <- sparseMatrix(
+  Adj <- Matrix::sparseMatrix(
     i = E[,1], 
     j = E[,2], 
     x = rep(1, nrow(E)), 
@@ -26,9 +28,13 @@ EdgetoAdj <- function(E, N) {
   return(Adj)
 }
 
-# ---------------------------------------------------------------------------
-# Convert edge list to adjacency matrix, removing self-loops
-# ---------------------------------------------------------------------------
+#' Convert an edge list to a sparse adjacency matrix without self-loops
+#'
+#' @param E Two-column edge list with source and target vertex indices.
+#' @param N Total number of vertices.
+#'
+#' @return A sparse adjacency matrix with diagonal entries removed.
+#' @export
 EdgetoAdj_No_loop <- function(E, N) {
   # E: two-column matrix where each row represents an edge (from, to)
   # N: total number of vertices
@@ -47,7 +53,7 @@ EdgetoAdj_No_loop <- function(E, N) {
   # - x = 1 for each edge
   # - dims = N x N
   # This will sum duplicate edges automatically, if any
-  Adj <- sparseMatrix(
+  Adj <- Matrix::sparseMatrix(
     i = E_noloop[,1], 
     j = E_noloop[,2], 
     x = rep(1, nrow(E_noloop)), 
@@ -57,10 +63,16 @@ EdgetoAdj_No_loop <- function(E, N) {
   return(Adj)
 }
 
-# ---------------------------------------------------------------------------
-# Count objects by type (e.g., triangles or other combinations)
-# ---------------------------------------------------------------------------
+#' Count graph motifs by cell-type combination
+#'
+#' @param oblist Matrix of graph objects where each row contains vertex indices.
+#' @param V Integer vector mapping vertices to cell types.
+#' @param maxTypes Optional maximum number of types used to size the output array.
+#'
+#' @return An array counting how often each type combination occurs.
+#' @export
 Count_Types <- function(oblist, V, maxTypes = 0){
+
   # oblist: matrix of objects (each row = one object, e.g., a wedge or triangle)
   # V: vector mapping vertices to their cell types (V[vertex] = type)
   # maxTypes: optional, maximum number of cell types
@@ -96,9 +108,14 @@ Count_Types <- function(oblist, V, maxTypes = 0){
   return(counttensor)
 }
 
-# ---------------------------------------------------------------------------
-# Poisson Branching Process utility
-# ---------------------------------------------------------------------------
+#' Poisson branching-process helper
+#'
+#' @param x Current estimate vector.
+#' @param M Mean offspring matrix.
+#' @param sens Length of `x`.
+#'
+#' @return A numeric vector used by `nleqslv::nleqslv()`.
+#' @keywords internal
 poiBPFunc <- function(x, M, sens) {
   # x: vector of current GSCC estimates
   # M: matrix of average group sizes

@@ -1,59 +1,146 @@
 ---
-title: "RaCiNG"
+title: "Getting started with RaCInG"
 author: "Marcelo Hurtado"
-date: "2026-03-25"
-output: html_document
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    number_sections: false
+vignette: >
+  %\VignetteIndexEntry{Getting started with RaCInG}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
-Load libraries
-```{r}
-library(dplyr)
-source("R/RaCInG_input_generation.R")
-source("R/network_generation.R")
-source("R/feature_extraction.R")
-source("R/Utilities.R")
-source("R/Monte_Carlo_Method.R")
-source("R/txt_to_csv.R")
-source("R/Kernel_Method.R")
-source("R/statistical_analysis.R")
-source("~/Documents/CellTBool/scripts/src/extract_expression_profiles.R")
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4
+)
 ```
 
-Load input
-```{r}
-counts = read.csv("~/Documents/multideconv_paper/input/raw_counts_Mariathasan.csv", row.names = 1)
+## Overview
+
+`RaCInG` reconstructs patient-specific cell-cell communication networks from bulk
+RNA-seq data. The package supports two complementary workflows:
+
+- a **kernel-based** approach for fast deterministic feature extraction, and
+- a **Monte Carlo** approach for simulation-based network summaries.
+
+This vignette shows the recommended workflow and the most important entry points for
+new users.
+
+## Installation
+
+### Install from GitHub
+
+```{r eval = FALSE}
+# install.packages("remotes")
+remotes::install_github("mhurtado13/racing")
+library(RaCInG)
 ```
 
-Method A: Monte Carlo
-```{r}
+### Install from a local checkout
+
+```{r eval = FALSE}
+# install.packages("devtools")
+devtools::install(".")
+library(RaCInG)
+```
+
+If you want to build the RaCInG input matrices directly from raw counts, install the
+optional preprocessing dependencies used by `prepare_input_files()`:
+
+```{r eval = FALSE}
+install.packages(c("ggplot2", "OmnipathR"))
+# Additional optional packages: ADImpute, multideconv, liana
+```
+
+## Workflow at a glance
+
+| Goal | Function | Output |
+| --- | --- | --- |
+| Build input files from raw counts | `prepare_input_files()` | `L`, `R`, `C`, and `LR` matrices |
+| Load prepared inputs | `generateInput()` | Named list of matrices and labels |
+| Compute deterministic features | `compute_racing_kernel()` | Kernel arrays + feature matrix |
+| Compute simulation summaries | `compute_racing_montecarlo()` | Processed Monte Carlo results |
+| Compare clinical groups | `wilcox_group_test()` | Statistics table and volcano plot |
+
+## Recommended workflow
+
+### 1. Start from prepared input matrices
+
+If you already have precomputed `L`, `R`, `C`, and `LR` matrices, load them with
+`generateInput()`.
+
+```{r eval = FALSE}
+input <- generateInput(
+  file_name = "SKCM",
+  output_folder = "Results/"
+)
+
+str(input)
+```
+
+### 2. Run the kernel method
+
+The kernel method is the fastest way to derive direct, wedge, triangle, or GSCC
+features across patients.
+
+```{r eval = FALSE}
+kernel_res <- compute_racing_kernel(
+  counts = counts_matrix,
+  output_folder = tempdir(),
+  file_name = "SKCM",
+  communication_type = "W",
+  norm = TRUE
+)
+
+head(kernel_res$features[, 1:5])
+```
+
+### 3. Run the Monte Carlo method
+
+Use the Monte Carlo workflow when you want simulation-based summaries or uncertainty
+estimates from repeated graph realizations.
+
+```{r eval = FALSE}
 set.seed(1)
-res_montecarlo = compute_racing_montecarlo(counts, output_folder = "~/Documents/racing/vignettes/", deconv_method = "Quantiseq", file_name = "Test", 
-                                           nPatients = 3, communication_type = "W", Ncells = 10, Ngraphs = 2, Ndegree = 2, norm = TRUE, pt_idx = 1)
-# res_montecarlo: 3 patients x 286 features
+mc_res <- compute_racing_montecarlo(
+  counts = counts_matrix,
+  output_folder = tempdir(),
+  deconv_method = "Quantiseq",
+  file_name = "SKCM",
+  nPatients = 3,
+  communication_type = "W",
+  Ncells = 100,
+  Ngraphs = 10,
+  Ndegree = 3,
+  norm = TRUE
+)
+
+head(mc_res$output$mean[, 1:5])
 ```
 
-Method B: Kernel method
-```{r}
-res_kernel = compute_racing_kernel(counts, output_folder = "~/Documents/racing/vignettes/", deconv_method = "Quantiseq", 
-                                   file_name = "Test", nPatients = "all", communication_type = "W", norm = TRUE, pt_idx = NULL)
+### 4. Perform statistical testing
 
-# res_kernel: 11 cells x 11 cells x 192 features
-```
+Once features are available in a patient-by-feature matrix, use the built-in Wilcoxon
+workflow to compare groups.
 
-Statistical analysis
-```{r}
-results = read.csv("~/Documents/racing/vignettes/SKCM_W_1000_cells_3_deg_data.csv", row.names = 1)
-# Suppose you have a vector of group labels
-grouping <- rep(c("Group1", "Group2"), 5)  # length must match nrow(results)
-
-# Run the Wilcoxon tests
-wilcox_results <- wilcox_group_test(results, grouping)
-
-# View top significant features
+```{r eval = FALSE}
+grouping <- c("Responder", "Responder", "Non-responder", "Non-responder")
+wilcox_results <- wilcox_group_test(kernel_res$features, grouping)
 head(wilcox_results)
-
-# Assuming wilcox_results is your data frame
-volcano_plot(wilcox_results, top_labels = 15, p_threshold = 1, 
-                         title = "SKCM Wilcoxon Volcano Plot")
+volcano_plot(wilcox_results, top_labels = 15)
 ```
+
+## Notes
+
+- `compute_racing_kernel()` and `compute_racing_montecarlo()` are the main entry points.
+- `prepare_input_files()` requires extra packages for deconvolution and prior-network
+  assembly.
+- The original Python implementation is available at
+  <https://github.com/SysBioOncology/RaCInG>.
+
 

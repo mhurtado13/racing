@@ -1,3 +1,11 @@
+#' Run Wilcoxon tests across network features
+#'
+#' @param data_matrix Numeric matrix or data frame with patients in rows and features in columns.
+#' @param groups Vector of group labels with length matching `nrow(data_matrix)`.
+#' @param p_adjust_method Multiple-testing correction method passed to [stats::p.adjust()].
+#'
+#' @return A data frame with test statistics and adjusted p-values.
+#' @export
 wilcox_group_test <- function(data_matrix, groups, p_adjust_method = "fdr") {
   # data_matrix: numeric matrix or data.frame, rows = patients, cols = features
   # groups: factor or character vector of group labels (length = nrow(data_matrix))
@@ -18,14 +26,14 @@ wilcox_group_test <- function(data_matrix, groups, p_adjust_method = "fdr") {
     feature_values <- data_matrix[, i]
 
     # Wilcoxon test between two groups
-    test_res <- wilcox.test(feature_values ~ groups)
+    test_res <- stats::wilcox.test(feature_values ~ groups)
 
     p_values[i] <- test_res$p.value
     stats[i] <- test_res$statistic
   }
 
   # Adjust p-values for multiple testing
-  p_adj <- p.adjust(p_values, method = p_adjust_method)
+  p_adj <- stats::p.adjust(p_values, method = p_adjust_method)
 
   # Return results as a data.frame
   result_df <- data.frame(
@@ -41,9 +49,20 @@ wilcox_group_test <- function(data_matrix, groups, p_adjust_method = "fdr") {
   return(result_df)
 }
 
+#' Create a volcano plot from Wilcoxon results
+#'
+#' @param wilcox_results Output of [wilcox_group_test()].
+#' @param top_labels Number of top significant features to label.
+#' @param p_threshold Adjusted p-value threshold used to mark significance.
+#' @param title Plot title.
+#'
+#' @return A `ggplot2` object.
+#' @export
 volcano_plot <- function(wilcox_results, top_labels = 10,
                                      p_threshold = 0.05, title = "Volcano Plot") {
-  library(ggplot2)
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package `ggplot2` is required for `volcano_plot()`. Please install it first.", call. = FALSE)
+  }
 
   # Make sure the required columns exist
   if(!all(c("Feature", "Adjusted_P_value", "Wilcox_statistic") %in% colnames(wilcox_results))) {
@@ -61,20 +80,27 @@ volcano_plot <- function(wilcox_results, top_labels = 10,
   plot_df$Significant <- ifelse(plot_df$Adj_P_value < p_threshold, "Yes", "No")
 
   # Identify top features by significance
-  top_features <- head(plot_df[plot_df$Significant == "Yes", ][order(plot_df$Adj_P_value), "Feature"], top_labels)
+  top_features <- utils::head(plot_df[plot_df$Significant == "Yes", ][order(plot_df$Adj_P_value), "Feature"], top_labels)
 
   # Plot
-  ggplot(plot_df, aes(x = Effect, y = -log10(Adj_P_value))) +
-    geom_point(aes(color = Significant), shape = 4, alpha = 0.7) +
-    geom_text(data = subset(plot_df, Feature %in% top_features),
-              aes(label = Feature), size = 3, vjust = -0.5, check_overlap = TRUE) +
-    geom_hline(yintercept = -log10(p_threshold), color = "red", linetype = "dashed") +
-    scale_color_manual(values = c("No" = "gainsboro", "Yes" = "blue")) +
-    xlim(min(plot_df$Effect) - 1, max(plot_df$Effect) + 1) +
-    theme_minimal() +
-    labs(x = "Wilcox Statistic / Effect Size",
-         y = "-log10(Adjusted P-value)",
-         title = title,
-         color = "Significant") +
-    theme(legend.position = "top")
+  ggplot2::ggplot(plot_df, ggplot2::aes(x = Effect, y = -log10(Adj_P_value))) +
+    ggplot2::geom_point(ggplot2::aes(color = Significant), shape = 4, alpha = 0.7) +
+    ggplot2::geom_text(
+      data = subset(plot_df, Feature %in% top_features),
+      ggplot2::aes(label = Feature),
+      size = 3,
+      vjust = -0.5,
+      check_overlap = TRUE
+    ) +
+    ggplot2::geom_hline(yintercept = -log10(p_threshold), color = "red", linetype = "dashed") +
+    ggplot2::scale_color_manual(values = c("No" = "gainsboro", "Yes" = "blue")) +
+    ggplot2::xlim(min(plot_df$Effect) - 1, max(plot_df$Effect) + 1) +
+    ggplot2::theme_minimal() +
+    ggplot2::labs(
+      x = "Wilcox Statistic / Effect Size",
+      y = "-log10(Adjusted P-value)",
+      title = title,
+      color = "Significant"
+    ) +
+    ggplot2::theme(legend.position = "top")
 }

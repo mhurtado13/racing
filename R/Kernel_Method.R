@@ -1,11 +1,13 @@
-# ==============================================================
-# Kernel.R
-# Contains functions to compute the kernel and graph properties
-# ==============================================================
-
-library(Matrix)
-library(pracma)  # for root finding similar to scipy.optimize.root
-
+#' Compute the RaCInG kernel for one or more patients
+#'
+#' @param liglist Cell-by-ligand compatibility matrix.
+#' @param reclist Cell-by-receptor compatibility matrix.
+#' @param Cmatrix Patient-by-cell-type abundance matrix.
+#' @param LRmatrix Ligand-by-receptor-by-patient interaction tensor.
+#' @param normalize Logical; if `TRUE`, also compute a uniformized baseline kernel.
+#'
+#' @return Either a 3D kernel array or a list with `kernel` and `kernel_norm`.
+#' @export
 compute_kernel <- function(liglist, reclist, Cmatrix, LRmatrix, normalize = FALSE) {
   # liglist:   [num_genes × num_ligands] binary/weighted matrix mapping genes to ligands
   # reclist:   [num_genes × num_receptors] binary/weighted matrix mapping genes to receptors
@@ -109,9 +111,15 @@ compute_kernel <- function(liglist, reclist, Cmatrix, LRmatrix, normalize = FALS
   }
 }
 
-# --------------------------------------------------------------
-# Calculate direct communication
-# --------------------------------------------------------------
+#' Calculate direct communication features from a kernel
+#'
+#' @param kernel Kernel array returned by [compute_kernel()].
+#' @param unifKernel Optional normalized baseline kernel.
+#' @param cells Character vector of cell-type names.
+#' @param bundle Logical; if `TRUE`, combine reciprocal directions.
+#'
+#' @return A patient-by-feature data frame of direct communication scores.
+#' @export
 calculateDirect <- function(kernel, unifKernel = NULL, cells, bundle = TRUE) {
   #---------------------------------------------------------------
   # Function: calculateDirectSimple
@@ -177,9 +185,15 @@ calculateDirect <- function(kernel, unifKernel = NULL, cells, bundle = TRUE) {
   return(df)
 }
 
-# --------------------------------------------------------------
-# Calculate wedge values (W)
-# --------------------------------------------------------------
+#' Calculate wedge features from a kernel
+#'
+#' @param kernel Kernel array returned by [compute_kernel()].
+#' @param unifKernel Optional normalized baseline kernel.
+#' @param cells Character vector of cell-type names.
+#' @param bundle Logical; if `TRUE`, combine directionally equivalent wedges.
+#'
+#' @return A patient-by-feature data frame of wedge scores.
+#' @export
 calculateWedges <- function(kernel, unifKernel = NULL, cells, bundle = TRUE) {
   #---------------------------------------------------------------
   # Function: calculateWedgesSimple
@@ -248,68 +262,37 @@ calculateWedges <- function(kernel, unifKernel = NULL, cells, bundle = TRUE) {
   return(df)
 }
 
-# --------------------------------------------------------------
-# Calculate GSCC analytically
-# --------------------------------------------------------------
+#' Legacy GSCC helper
+#'
+#' This helper depended on project-specific files from the original development
+#' workflow. The packaged interface now recommends using [computeGSCC()] directly.
+#'
+#' @param cancer Legacy dataset identifier.
+#' @param lab Scaling factor.
+#' @param norm Logical; kept for backward compatibility.
+#' @param test Logical; kept for backward compatibility.
+#'
+#' @return This function stops with a message directing users to [computeGSCC()].
+#' @export
 getGSCCAnalytically <- function(cancer, lab = 1, norm = TRUE, test = FALSE) {
-  load(file = paste0("kernel_", cancer, ".RData"))
-  input <- generateInput("min", cancer)
-  Dcell <- input[[3]]
-  cells <- input[[5]]
-  cells[cells == "CD8+ T"] <- "CD8"
-  names <- get_patient_names(cancer)
-
-  if (test) {
-    Dcell <- Dcell[1:2, ]
-    names <- names[1:2]
-  }
-
-  sens <- length(cells)
-  GSCCsizes <- matrix(0, nrow = length(names), ncol = sens+1)
-  GSCCsizesN <- matrix(0, nrow = length(names), ncol = sens+1)
-
-  for (k in 1:length(names)) {
-    q <- Dcell[k, ]
-    muP <- matrix(0, nrow = sens, ncol = sens)
-    muM <- matrix(0, nrow = sens, ncol = sens)
-    for (i in 1:sens) {
-      for (j in 1:sens) {
-        muP[i,j] <- lab * kernel[j,i,k] * q[j]
-        muM[i,j] <- lab * kernel[i,j,k] * q[j]
-      }
-    }
-    solP <- nleqslv::nleqslv(rep(1, sens), poiBPFunc, muP = muP, sens = sens)
-    solM <- nleqslv::nleqslv(rep(1, sens), poiBPFunc, muP = muM, sens = sens)
-    x <- solP$x
-    y <- solM$x
-    GSCCsizes[k, 1:sens] <- x * y * q
-    GSCCsizes[k, sens+1] <- sum(x * y * q)
-  }
-
-  # Normalize if required
-  if (norm) {
-    normvals <- GSCCsizes / GSCCsizesN
-    normvals[is.nan(normvals)] <- 1
-    df <- as.data.frame(normvals)
-    colnames(df) <- c(paste0("GSCC_", cells), "GSCC")
-    rownames(df) <- names
-    write.csv(df, file = paste0(cancer, "_min_weight_GSCC_norm.csv"))
-  } else {
-    df <- as.data.frame(GSCCsizes)
-    colnames(df) <- c(paste0("GSCC_", cells), "GSCC")
-    rownames(df) <- names
-    write.csv(df, file = paste0(cancer, "_min_weight_GSCC.csv"))
-  }
-
-  return(df)
+  stop(
+    "`getGSCCAnalytically()` is a legacy helper. Use `computeGSCC()` with an explicit kernel and abundance matrix instead.",
+    call. = FALSE
+  )
 }
 
-# --------------------------------------------------------------
-# Calculate GSCC analytically using a kernel
-# --------------------------------------------------------------
-# --------------------------------------------------------------
-# Compute GSCC analytically given kernel matrices
-# --------------------------------------------------------------
+#' Compute GSCC features from kernel matrices
+#'
+#' @param kernel Kernel array from [compute_kernel()].
+#' @param Dcell Patient-by-cell-type abundance matrix.
+#' @param cell_names Character vector of cell-type labels.
+#' @param patient_names Character vector of patient names.
+#' @param unifKernel Optional normalized baseline kernel.
+#' @param norm Logical; if `TRUE`, divide by the baseline GSCC values.
+#' @param lab Scaling factor for interaction strengths.
+#'
+#' @return A data frame with GSCC feature values per patient.
+#' @export
 computeGSCC <- function(kernel, Dcell, cell_names, patient_names,
                         unifKernel = NULL, norm = FALSE, lab = 1) {
   # kernel: [sender x receiver x patient] matrix from compute_kernel
@@ -387,9 +370,17 @@ computeGSCC <- function(kernel, Dcell, cell_names, patient_names,
   return(df)
 }
 
-# --------------------------------------------------------------
-# Compute triangle (Tr) values from kernel matrices
-# --------------------------------------------------------------
+#' Compute triangle features from kernel matrices
+#'
+#' @param kernel Kernel array from [compute_kernel()].
+#' @param cell_names Character vector of cell-type names.
+#' @param patient_names Character vector of patient names.
+#' @param unifKernel Optional normalized baseline kernel.
+#' @param norm Logical; if `TRUE`, divide by the baseline triangle scores.
+#' @param bundle Logical; if `TRUE`, aggregate directionally equivalent triangles.
+#'
+#' @return A patient-by-feature data frame of triangle scores.
+#' @export
 computeTriangles <- function(kernel, cell_names, patient_names,
                              unifKernel = NULL, norm = FALSE, bundle = TRUE) {
   # kernel: 3D array [sender x receiver x patient] from compute_kernel
@@ -463,6 +454,20 @@ computeTriangles <- function(kernel, cell_names, patient_names,
   return(df)
 }
 
+#' Derive communication features from a kernel
+#'
+#' @param kernel Kernel array from [compute_kernel()].
+#' @param unifKernel Optional normalized baseline kernel.
+#' @param celltypes Character vector of cell-type labels.
+#' @param communication_type Feature family to compute (`"D"`, `"W"`, `"TT"`, or `"GSCC"`).
+#' @param bundle Logical; if `TRUE`, merge directionally equivalent features where appropriate.
+#' @param patient_names Optional patient labels.
+#' @param Dcell Optional abundance matrix required for `"GSCC"`.
+#' @param norm Logical; if `TRUE`, compute normalized features when a baseline is supplied.
+#' @param patient_idx Optional patient index subset.
+#'
+#' @return A data frame of feature values for the selected patients.
+#' @export
 compute_kernel_features <- function(kernel, unifKernel = NULL, celltypes, communication_type = "D", bundle = TRUE,
                                     patient_names = NULL, Dcell = NULL, norm = FALSE, patient_idx = NULL) {
 
@@ -504,14 +509,39 @@ compute_kernel_features <- function(kernel, unifKernel = NULL, celltypes, commun
 
 }
 
+#' Run the full kernel-based RaCInG workflow
+#'
+#' @param counts Gene-by-sample count matrix.
+#' @param output_folder Directory used to write and read intermediate input files.
+#' @param deconv Optional deconvolution matrix.
+#' @param cc_network Optional ligand-receptor prior network.
+#' @param fun_LR Function used to combine ligand and receptor expression values.
+#' @param cell_expr_profile Optional cell-type expression profile matrix.
+#' @param source,target Column names to use as ligand and receptor identifiers in `cc_network`.
+#' @param signed Logical; if `TRUE`, also try to load a sign matrix.
+#' @param deconv_method Deconvolution method used when `deconv` is not supplied.
+#' @param cbsx.name,cbsx.token Optional credentials for the deconvolution workflow.
+#' @param file_name File stem used for intermediate input files.
+#' @param nPatients Number of patients to process, or `"all"`.
+#' @param communication_type Feature family to compute.
+#' @param norm Logical; if `TRUE`, compute a normalized baseline kernel.
+#' @param pt_idx Optional single patient index to process.
+#' @param remove_direction Logical; if `TRUE`, merge directionally equivalent features.
+#'
+#' @return A list with the kernel arrays and the derived feature matrix.
+#' @export
 compute_racing_kernel = function(counts, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
                                  cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol", signed = FALSE,
                                  deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL, nPatients = "all", 
                                  communication_type = "W", norm = TRUE, pt_idx = NULL, remove_direction = TRUE) {
 
-  input_files = prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
-                                    cell_expr_profile = cell_expr_profile, source = source, target = target,
-                                    deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
+  if (is.null(file_name)) {
+    file_name <- "RaCInG_input"
+  }
+
+  prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
+                      cell_expr_profile = cell_expr_profile, source = source, target = target,
+                      deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
 
   res <- generateInput(file_name, output_folder = output_folder, read_signs = signed)
 
@@ -541,14 +571,25 @@ compute_racing_kernel = function(counts, output_folder = "~/Documents/racing/vig
   cat("Calculating kernel...\n")
   
   res <- compute_kernel(Lmatrix, Rmatrix, Cmatrix, LRmatrix, normalize = norm)
+  kernel_raw <- if (isTRUE(norm)) res$kernel else res
+  kernel_norm <- if (isTRUE(norm)) res$kernel_norm else NULL
 
   # -----------------------------
   # Calculate features
   # -----------------------------
   cat("Calculating features...\n")
-  features = compute_kernel_features(res$kernel, res$kernel_norm, celltypes = cellTypes, communication_type = communication_type, 
-                                     bundle = remove_direction, patient_names = colnames(counts), Dcell = Cmatrix, norm = norm, patient_idx = pt_idx)
+  features <- compute_kernel_features(
+    kernel = kernel_raw,
+    unifKernel = kernel_norm,
+    celltypes = cellTypes,
+    communication_type = communication_type,
+    bundle = remove_direction,
+    patient_names = colnames(counts),
+    Dcell = Cmatrix,
+    norm = norm,
+    patient_idx = pt_idx
+  )
 
-  return(list(kernel = res, features = features))
+  return(list(kernel = kernel_raw, kernel_norm = kernel_norm, features = features))
 
 }

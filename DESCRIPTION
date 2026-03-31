@@ -1,21 +1,43 @@
 Package: RaCInG
 Type: Package
-Title: R Analysis of Cell Interactions and Graphs (RaCInG)
+Title: Reconstruct Cell-Cell Interaction Graphs from Bulk Transcriptomics
 Version: 0.1.0
-Authors@R: 
-    person("First", "Last", email = "your_email@example.com", role = c("aut", "cre"))
-Description: Provides functions for reading cell-ligand and cell-receptor data, generating interaction tensors, computing triangle and graphlet distributions, and normalizing graph-based statistics for cancer datasets.
-License: MIT
+Authors@R:
+    person(given = "Marcelo", family = "Hurtado",
+           email = "marcelo.hurt137@gmail.com",
+           role = c("aut", "cre"))
+Author: Marcelo Hurtado [aut, cre]
+Maintainer: Marcelo Hurtado <marcelo.hurt137@gmail.com>
+Description: Tools to prepare ligand-receptor inputs, generate patient-specific
+    cell-cell interaction networks, compute kernel and Monte Carlo network
+    features, and perform downstream statistical analysis for RaCInG studies.
+License: MIT + file LICENSE
+URL: https://github.com/mhurtado13/racing, https://mhurtado13.github.io/racing/
+BugReports: https://github.com/mhurtado13/racing/issues
 Encoding: UTF-8
-LazyData: true
+Depends:
+    R (>= 4.1)
 Imports:
     data.table,
     dplyr,
+    magrittr,
+    Matrix,
+    nleqslv,
+    rlang,
     tibble,
-    tidyr,
-    Matrix
+    tidyr
 Suggests:
+    ADImpute,
+    ggplot2,
     knitr,
-    rmarkdown
+    liana,
+    multideconv,
+    OmnipathR,
+    pkgdown,
+    remotes,
+    rmarkdown,
+    roxygen2
 VignetteBuilder: knitr
-RoxygenNote: 7.2.2
+Config/Needs/website: pkgdown
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3

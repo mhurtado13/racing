@@ -1,0 +1,83 @@
+url: https://mhurtado13.github.io/racing/
+template:
+  bootstrap: 5
+
+home:
+  title: RaCInG
+  description: R Analysis of Cell Interactions and Graphs
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/mhurtado13/racing
+      aria-label: GitHub repository
+
+reference:
+  - title: Main workflows
+    contents:
+      - prepare_input_files
+      - generateInput
+      - compute_racing_kernel
+      - compute_racing_montecarlo
+  - title: Kernel and Monte Carlo methods
+    contents:
+      - compute_kernel
+      - compute_kernel_features
+      - calculateDirect
+      - calculateWedges
+      - computeTriangles
+      - computeGSCC
+      - countWedges
+      - countTrustTriangles
+      - countCycleTriangles
+      - countDirect
+      - countGSCC
+      - model1
+      - runSim
+      - getGSCCAnalytically
+  - title: Input generation
+    contents:
+      - createCellLigList
+      - createCellRecList
+      - createCellTypeDistr
+      - createInteractionDistr
+      - Read_Lig_Rec_Interaction
+      - genRandomCellTypeDistr
+      - genRandomLigRecDistr
+      - genRandomCellLigands
+      - genRandomCellReceptors
+      - genRandomCellTypeList
+      - generateUniformLRGraph
+  - title: Graph utilities
+    contents:
+      - EdgetoAdj
+      - EdgetoAdj_No_loop
+      - Count_Types
+      - Trust_Triangles
+      - Cycle_Triangles
+      - Wedges
+      - Find_Number_Trust_Triangles_Unique
+      - Find_Number_Triangles
+      - Find_Number_Triangles_Unique
+      - Find_Number_2Loops
+      - Find_Number_2Loops_Unique
+      - Find_Number_Wedges
+      - Find_Number_Wedges_Unique
+      - GSCC
+      - IN
+      - OUT
+  - title: Statistics and I/O
+    contents:
+      - wilcox_group_test
+      - volcano_plot
+      - Read_Sim_Output
+      - compute_results_processing
+
+articles:
+  - title: Vignettes
+    contents:
+      - RaCiNG

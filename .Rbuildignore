@@ -1,2 +1,10 @@
 ^racing\.Rproj$
 ^\.Rproj\.user$
+^README\.Rmd$
+^docs$
+^\.github$
+^\.gitignore$
+^\.Rhistory$
+^\.vscode$
+^\.\.Rcheck$
+^_pkgdown\.yml$

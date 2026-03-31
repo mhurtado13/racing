@@ -1,11 +1,9 @@
-# Author: Mike van Santvoort (translated to R)
-# Generates one graph realization of RaCInG based on input distributions
-# Dependencies: base R, no class construction
-
-# -------------------------------------------------------------
-# Function: genRandomCellTypeDistr
-# Generates a random cell-type distribution
-# -------------------------------------------------------------
+#' Generate a random cell-type distribution
+#'
+#' @param cellTypeNo Number of cell types.
+#'
+#' @return A probability vector summing to 1.
+#' @export
 genRandomCellTypeDistr <- function(cellTypeNo) {
   # Generate a random probability distribution for cell types
   #
@@ -16,16 +14,19 @@ genRandomCellTypeDistr <- function(cellTypeNo) {
   #   A numeric vector of length `cellTypeNo` representing the probability
   #   of each cell type. The sum of the probabilities is 1.
   
-  probs <- runif(cellTypeNo)  # generate random values for each cell type
+  probs <- stats::runif(cellTypeNo)  # generate random values for each cell type
   probs <- probs / sum(probs)  # normalize so total probability sums to 1
   
   return(probs)
 }
 
-# -------------------------------------------------------------
-# Function: genRandomLigRecDistr
-# Generates random ligand-receptor interaction probabilities
-# -------------------------------------------------------------
+#' Generate a random ligand-receptor distribution
+#'
+#' @param ligNo Number of ligand types.
+#' @param recNo Number of receptor types.
+#'
+#' @return A normalized ligand-by-receptor probability matrix.
+#' @export
 genRandomLigRecDistr <- function(ligNo, recNo) {
   # Generate a random ligand-receptor probability distribution matrix
   #
@@ -38,7 +39,7 @@ genRandomLigRecDistr <- function(ligNo, recNo) {
   #   of a specific ligand-receptor pair occurring. The sum of all elements is 1.
   
   mat <- matrix(
-    runif(ligNo * recNo),   # generate random values for each ligand-receptor pair
+    stats::runif(ligNo * recNo),   # generate random values for each ligand-receptor pair
     nrow = ligNo,
     ncol = recNo
   )
@@ -48,10 +49,13 @@ genRandomLigRecDistr <- function(ligNo, recNo) {
   return(mat)
 }
 
-# -------------------------------------------------------------
-# Function: genRandomCellLigands
-# Generates random cell-ligand connectivity matrix
-# -------------------------------------------------------------
+#' Generate a random cell-to-ligand compatibility matrix
+#'
+#' @param cellTypeNo Number of cell types.
+#' @param ligNo Number of ligand types.
+#'
+#' @return A binary matrix describing ligand availability per cell type.
+#' @export
 genRandomCellLigands <- function(cellTypeNo, ligNo) {
   # Generate a random 0/1 matrix indicating which cell types can secrete which ligands
   # Arguments:
@@ -70,10 +74,13 @@ genRandomCellLigands <- function(cellTypeNo, ligNo) {
   return(mat)
 }
 
-# -------------------------------------------------------------
-# Function: genRandomCellReceptors
-# Generates random cell-receptor connectivity matrix
-# -------------------------------------------------------------
+#' Generate a random cell-to-receptor compatibility matrix
+#'
+#' @param cellTypeNo Number of cell types.
+#' @param recNo Number of receptor types.
+#'
+#' @return A binary matrix describing receptor availability per cell type.
+#' @export
 genRandomCellReceptors <- function(cellTypeNo, recNo) {
   # Generate a random 0/1 matrix indicating which cell types can express which receptors
   # Arguments:
@@ -92,10 +99,13 @@ genRandomCellReceptors <- function(cellTypeNo, recNo) {
   return(mat)
 }
 
-# -------------------------------------------------------------
-# Function: genRandomCellTypeList
-# Generates a list of vertex types for the graph
-# -------------------------------------------------------------
+#' Sample cell-type labels for graph vertices
+#'
+#' @param Dcelltype Probability vector over cell types.
+#' @param vertexNo Number of vertices to sample.
+#'
+#' @return An integer vector of sampled cell-type indices.
+#' @export
 genRandomCellTypeList <- function(Dcelltype, vertexNo) {
   # This function generates a random list of cell types for the graph vertices.
   # Each vertex is assigned a cell type based on the probabilities in Dcelltype.
@@ -118,10 +128,15 @@ genRandomCellTypeList <- function(Dcelltype, vertexNo) {
   )
 }
 
-# -------------------------------------------------------------
-# Function: genRandomEdgeList
-# Generates an edge list according to ligand-receptor probabilities
-# -------------------------------------------------------------
+#' Sample an edge list from ligand-receptor probabilities
+#'
+#' @param Dligrec Ligand-by-receptor probability matrix.
+#' @param vertextypelist Integer vector assigning a cell type to each vertex.
+#' @param structurelig Cell-by-ligand compatibility matrix.
+#' @param structurerec Cell-by-receptor compatibility matrix.
+#'
+#' @return A list with `cell_connection` and `ligrec_type` matrices.
+#' @keywords internal
 genRandomEdgeList <- function(Dligrec, vertextypelist, structurelig, structurerec) {
   
   ligNo <- nrow(Dligrec)   # Number of ligand types
@@ -182,10 +197,19 @@ genRandomEdgeList <- function(Dligrec, vertextypelist, structurelig, structurere
   return(list(cell_connection = edgelist, ligrec_type = edgetypelist))
 }
 
-# -------------------------------------------------------------
-# Function: model1
-# Generates a graph instance according to Model 1
-# -------------------------------------------------------------
+#' Generate a single RaCInG graph realization
+#'
+#' @param N Number of vertices (cells) in the graph.
+#' @param avdeg Target average degree.
+#' @param cellLigList Cell-by-ligand compatibility matrix.
+#' @param cellRecList Cell-by-receptor compatibility matrix.
+#' @param Dcelltype Cell-type abundance probabilities.
+#' @param Dligrec Ligand-by-receptor probability matrix.
+#' @param Signmatrix Optional ligand-receptor sign matrix.
+#' @param genRandom Logical; if `TRUE`, generate random test inputs internally.
+#'
+#' @return A list with vertex labels, an edge list, and ligand-receptor types.
+#' @export
 model1 <- function(N, avdeg,
                    cellLigList = NULL, cellRecList = NULL,
                    Dcelltype = NULL, Dligrec = NULL, Signmatrix = NULL,
@@ -240,6 +264,19 @@ model1 <- function(N, avdeg,
   return(list(V = V, E = E, types = types))
 }
 
+#' Generate a graph under a uniformized ligand-receptor baseline
+#'
+#' @param LRdistr Ligand-receptor tensor.
+#' @param Lmatrix Cell-by-ligand compatibility matrix.
+#' @param Rmatrix Cell-by-receptor compatibility matrix.
+#' @param Cdistr Patient-by-cell-type abundance matrix.
+#' @param cellTypes Character vector of cell-type labels.
+#' @param patient Patient index to simulate.
+#' @param N Number of cells in the generated graph.
+#' @param avdeg Target average degree.
+#'
+#' @return A list containing the simulated graph and the uniform LR distribution used.
+#' @export
 generateUniformLRGraph <- function(LRdistr, Lmatrix, Rmatrix, Cdistr, cellTypes, patient = 1, N = 20, avdeg = 2) {
   # Set seed for reproducibility
   set.seed(1)

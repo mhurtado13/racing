@@ -1,12 +1,11 @@
-# ================================
-# Required libraries
-# ================================
-library(data.table)
-library(dplyr)
-
-# ================================
-# 1. sortPermute
-# ================================
+#' Sort a character vector and return the permutation index
+#'
+#' Internal helper used to keep labels aligned after alphabetical reordering.
+#'
+#' @param stringlist Character vector to sort.
+#'
+#' @return A list with the sorted vector (`sortlist`) and its permutation index (`perm`).
+#' @keywords internal
 sortPermute <- function(stringlist) {
   ord <- order(stringlist)
   sortlist <- stringlist[ord]
@@ -14,16 +13,19 @@ sortPermute <- function(stringlist) {
   return(list(sortlist = sortlist, perm = perm))
 }
 
-# ================================
-# 2. createCellLigList
-# ================================
+#' Read a cell-to-ligand compatibility matrix
+#'
+#' @param filename Path to a CSV file with cell types in rows and ligands in columns.
+#'
+#' @return A list containing the matrix plus ligand and cell-type labels.
+#' @export
 createCellLigList <- function(filename) {
   if (!file.exists(filename)) {
     print(filename)
     stop("ERROR: The file with cell-ligand interactions does not exist...")
   }
   
-  df <- read.csv(filename, row.names = 1)
+  df <- utils::read.csv(filename, row.names = 1)
   
   # Store the column names (ligands) and row names (cell types)
   ligands <- colnames(df)
@@ -48,15 +50,18 @@ createCellLigList <- function(filename) {
               celltypes = celltypes))
 }
 
-# ================================
-# 3. createCellRecList
-# ================================
+#' Read a cell-to-receptor compatibility matrix
+#'
+#' @param filename Path to a CSV file with cell types in rows and receptors in columns.
+#'
+#' @return A list containing the matrix plus receptor and cell-type labels.
+#' @export
 createCellRecList <- function(filename) {
   if (!file.exists(filename)) {
     stop("ERROR: The file with cell-receptor interactions does not exist...")
   }
   
-  df <- read.csv(filename, row.names = 1)
+  df <- utils::read.csv(filename, row.names = 1)
   
   # Store the column names (receptors) and row names (cell types)
   receptors <- colnames(df)
@@ -81,16 +86,20 @@ createCellRecList <- function(filename) {
               celltypes = celltypes))
 }
 
-# ================================
-# 4. createCellTypeDistr
-# ================================
+#' Read and normalize cell-type abundance estimates
+#'
+#' @param cells Character vector of expected cell types.
+#' @param filename Path to a CSV file containing patient-by-cell-type abundances.
+#'
+#' @return A list with the normalized `Dtypes` matrix plus labels.
+#' @export
 createCellTypeDistr <- function(cells, filename) {
   if (!file.exists(filename)) {
     stop("Cell type distribution file does not exist...")
   }
   
   # Read CSV file, using the first column as rownames (datasets)
-  df <- read.csv(filename, row.names = 1)
+  df <- utils::read.csv(filename, row.names = 1)
   
   # Extract column names as cell type names and row names as dataset names
   celltypes <- colnames(df)
@@ -131,15 +140,20 @@ createCellTypeDistr <- function(cells, filename) {
               datasets = datasets))
 }
 
-# ================================
-# 5. createInteractionDistr
-# ================================
+#' Read ligand-receptor interaction probabilities
+#'
+#' @param filename Path to a CSV file containing patient-by-interaction weights.
+#' @param ligands Character vector of ligand names.
+#' @param receptors Character vector of receptor names.
+#'
+#' @return A 3D array with dimensions ligand × receptor × patient.
+#' @export
 createInteractionDistr <- function(filename, ligands, receptors) {
   if (!file.exists(filename)) {
     stop("Interaction distribution file does not exist...")
   }
   
-  df <- read.csv(filename, row.names = 1)
+  df <- utils::read.csv(filename, row.names = 1)
   
   # Store column names (interaction names like LIG_REC) and row names (datasets)
   interactions <- colnames(df)
@@ -187,15 +201,18 @@ createInteractionDistr <- function(filename, ligands, receptors) {
   return(DconnectionTensor)
 }
 
-# ================================
-# 6. Read_Lig_Rec_Interaction
-# ================================
+#' Read a ligand-receptor sign matrix
+#'
+#' @param filename Path to a delimited file containing ligand-receptor signs or weights.
+#'
+#' @return A list with the numeric sign matrix and its ligand/receptor labels.
+#' @export
 Read_Lig_Rec_Interaction <- function(filename) {
   if (!file.exists(filename)) {
     stop("Interaction sign file does not exist...")
   }
   
-  df <- fread(filename, header = TRUE)
+  df <- data.table::fread(filename, header = TRUE)
   
   receptor_names <- colnames(df)[-1]
   ligand_names <- df[[1]]
@@ -208,9 +225,16 @@ Read_Lig_Rec_Interaction <- function(filename) {
               receptor_names = receptor_names))
 }
 
-# ================================
-# 7. generateInput
-# ================================
+#' Load RaCInG input matrices from disk
+#'
+#' @param file_name File stem used for the `Lmatrix_`, `Rmatrix_`, `Cmatrix_`, and
+#'   `LRmatrix_` CSV files.
+#' @param output_folder Directory containing the exported input files.
+#' @param read_signs Logical; if `TRUE`, attempts to read `Sign_matrix_<file_name>.csv`
+#'   from `output_folder`.
+#'
+#' @return A named list containing the input matrices and their labels.
+#' @export
 generateInput <- function(file_name, output_folder, read_signs = FALSE) {
   
   # -----------------------------
@@ -258,21 +282,26 @@ generateInput <- function(file_name, output_folder, read_signs = FALSE) {
     receptors = rec_data$receptors
   )
   
-  ################################# TO BE DONE
   # -----------------------------
   # Optionally read the sign of interactions (+1 stimulating, -1 inhibiting, 0 unknown)
-  # If read_signs = FALSE, create a matrix of zeros (unknown)
+  # If no sign matrix is supplied, fall back to zeros (unknown sign).
   # -----------------------------
-  if (read_signs) { ### missing to check this
-    sign_data <- Read_Lig_Rec_Interaction(
-      file.path(current_path, folder,
-                paste0(cancer_name, "_LRpairs_sign_interaction.csv"))
-    )
+  if (isTRUE(read_signs)) {
+    sign_path <- file.path(output_folder, paste0("Sign_matrix_", file_name, ".csv"))
+    if (!file.exists(sign_path)) {
+      stop(
+        "`read_signs = TRUE` requires a sign matrix file at ", sign_path,
+        call. = FALSE
+      )
+    }
+    sign_data <- Read_Lig_Rec_Interaction(sign_path)
     Sign_matrix <- sign_data$sign_matrix
   } else {
-    Sign_matrix <- matrix(0,
-                          nrow = dim(DconnectionTensor)[1],
-                          ncol = dim(DconnectionTensor)[2])
+    Sign_matrix <- matrix(
+      0,
+      nrow = dim(DconnectionTensor)[1],
+      ncol = dim(DconnectionTensor)[2]
+    )
   }
   
   # -----------------------------
@@ -290,29 +319,55 @@ generateInput <- function(file_name, output_folder, read_signs = FALSE) {
   ))
 }
 
+#' Build RaCInG input files from raw count data
+#'
+#' @param counts Gene-by-sample count matrix.
+#' @param output_folder Directory where the generated `L`, `R`, `C`, and `LR` files are written.
+#' @param deconv Optional deconvolution matrix. If omitted, the function will try to compute it.
+#' @param cc_network Optional ligand-receptor prior network.
+#' @param fun_LR Function used to combine ligand and receptor expression values.
+#' @param cell_expr_profile Optional cell-type expression profile matrix.
+#' @param source,target Column names to use as ligand and receptor identifiers when `cc_network` is supplied.
+#' @param deconv_method Deconvolution method passed to `multideconv::compute.deconvolution()`.
+#' @param cbsx.name,cbsx.token Optional credentials forwarded to the deconvolution workflow.
+#' @param file_name File stem used when exporting the generated CSV files.
+#'
+#' @return A list containing the generated matrices and the assembled cell-cell table.
+#' @export
 prepare_input_files <- function(counts, output_folder = "Results/", deconv = NULL, cc_network = NULL, fun_LR = min, 
                                 cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol",
                                 deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL){
   
-  counts.tpm = ADImpute::NormalizeTPM(counts)
-  counts.log.tpm <- log2(counts + 1)
+  if (is.null(file_name)) {
+    file_name <- "RaCInG_input"
+  }
+
+  .check_installed_packages(c("ADImpute", "multideconv"))
+  counts.tpm <- ADImpute::NormalizeTPM(counts)
+  counts.log.tpm <- log2(counts.tpm + 1)
 
   cat("Calculating deconvolution estimates...\n")
   ## C-matrix
-  if(is.null(deconv)){
-    deconv <- multideconv::compute.deconvolution(counts.tpm, normalized = F, methods = deconv_method, 
-                                                 credentials.mail = cbsx.name, credentials.token = cbsx.token, 
-                                                 file_name = file_name)
-  }else{
+  if (is.null(deconv)) {
+    deconv <- multideconv::compute.deconvolution(
+      counts.tpm,
+      normalized = FALSE,
+      methods = deconv_method,
+      credentials.mail = cbsx.name,
+      credentials.token = cbsx.token,
+      file_name = file_name
+    )
+  } else {
     cat("Using provided deconvolution estimates...\n")
   }
   
   ## Cell type expression profiles
   cat("\nEstimating cell type expression profiles...\n")
-  if(is.null(cell_expr_profile)){
-    expr_counts <- estimate_expression_profiles(counts, deconv)
-    cell_expr_profile <- rbind(sapply(expr_counts, function(x) colMeans(x))) %>% as.data.frame()
-  }
+  cell_expr_profile <- .resolve_expression_profiles(
+    counts = counts,
+    deconv = deconv,
+    cell_expr_profile = cell_expr_profile
+  )
 
   ## Verify if patients names match between files
   if(!all(rownames(deconv) %in% colnames(counts))){
@@ -325,13 +380,14 @@ prepare_input_files <- function(counts, output_folder = "Results/", deconv = NUL
 
   ## Prior knowledge network CC
   cat("Processing cell-cell interaction network...\n")
-  if(is.null(cc_network)){
+  if (is.null(cc_network)) {
+    .check_installed_packages(c("OmnipathR", "liana"))
     cc_network <- OmnipathR::import_intercell_network(high_confidence = TRUE) %>%
       dplyr::filter(category_intercell_source %in% c("cell_surface_ligand", "ligand") &
                     category_intercell_target %in% c("receptor", "adhesion")) %>%
       liana::decomplexify(columns = c("source_genesymbol", "target_genesymbol"))
-  }else{
-    cc_network = cc_network %>%
+  } else {
+    cc_network <- cc_network %>%
       dplyr::mutate(source_genesymbol = .data[[source]], target_genesymbol = .data[[target]])
   }
   
@@ -388,7 +444,7 @@ prepare_input_files <- function(counts, output_folder = "Results/", deconv = NUL
   Lmatrix <- matrix(0, nrow = length(celltypes), ncol = length(ligs),
                     dimnames = list(celltypes, ligs))
   for (ct in celltypes) {
-    tmp <- ccc_table %>% filter(Sender == ct) %>% select(Ligand) %>% unique()
+    tmp <- ccc_table %>% dplyr::filter(Sender == ct) %>% dplyr::select(Ligand) %>% unique()
     Lmatrix[ct, tmp$Ligand] <- 1
   }
   
@@ -398,18 +454,18 @@ prepare_input_files <- function(counts, output_folder = "Results/", deconv = NUL
   Rmatrix <- matrix(0, nrow = length(celltypes), ncol = length(recs),
                     dimnames = list(celltypes, recs))
   for (ct in celltypes) {
-    tmp <- ccc_table %>% filter(Receiver == ct) %>% select(Receptor) %>% unique()
+    tmp <- ccc_table %>% dplyr::filter(Receiver == ct) %>% dplyr::select(Receptor) %>% unique()
     Rmatrix[ct, tmp$Receptor] <- 1
   }
   
   ## Output files
   cat("Exporting input files for RaCiNG...\n")
   if (!dir.exists(output_folder)) dir.create(output_folder, recursive = TRUE)
-  write.csv(Lmatrix, file.path(output_folder, paste0("Lmatrix_", file_name, ".csv")))
-  write.csv(Rmatrix, file.path(output_folder, paste0("Rmatrix_", file_name, ".csv")))
-  write.csv(deconv, file.path(output_folder, paste0("Cmatrix_", file_name, ".csv")))
-  write.csv(LR_matrix, file.path(output_folder, paste0("LRmatrix_", file_name, ".csv")))
-  write.csv(ccc_table, file.path(output_folder, paste0("CC_table_", file_name, ".csv")), row.names = FALSE)
+  utils::write.csv(Lmatrix, file.path(output_folder, paste0("Lmatrix_", file_name, ".csv")))
+  utils::write.csv(Rmatrix, file.path(output_folder, paste0("Rmatrix_", file_name, ".csv")))
+  utils::write.csv(deconv, file.path(output_folder, paste0("Cmatrix_", file_name, ".csv")))
+  utils::write.csv(LR_matrix, file.path(output_folder, paste0("LRmatrix_", file_name, ".csv")))
+  utils::write.csv(ccc_table, file.path(output_folder, paste0("CC_table_", file_name, ".csv")), row.names = FALSE)
   
   cat("Input files generated and saved to:", output_folder, "\n")
   list(

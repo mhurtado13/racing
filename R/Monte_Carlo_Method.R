@@ -1,6 +1,16 @@
-# ------------------------------------------------------------
-# Functions to generate graphs and extract features in R
-# ------------------------------------------------------------
+#' Count wedges across Monte Carlo graph simulations
+#'
+#' @param Dcell Cell-type abundance vector for one patient.
+#' @param Dconn Ligand-receptor probability matrix for one patient.
+#' @param lig Cell-by-ligand compatibility matrix.
+#' @param rec Cell-by-receptor compatibility matrix.
+#' @param cellnames Character vector of cell-type names.
+#' @param N Number of cells per simulated graph.
+#' @param av Target average degree.
+#' @param itNo Number of Monte Carlo iterations.
+#'
+#' @return A list of average and standard-deviation wedge counts.
+#' @export
 countWedges <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   # Number of cell types
   nCells <- length(cellnames)
@@ -32,9 +42,9 @@ countWedges <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   
   # Compute averages and standard deviations across Monte Carlo iterations
   av_triag <- apply(triangletensor, c(1,2,3), mean)
-  std_triag <- apply(triangletensor, c(1,2,3), sd)
+  std_triag <- apply(triangletensor, c(1,2,3), stats::sd)
   av_count <- mean(trianglecount)
-  std_count <- sd(trianglecount)
+  std_count <- stats::sd(trianglecount)
   
   return(list(
     av_triag = av_triag, 
@@ -44,6 +54,12 @@ countWedges <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   ))
 }
 
+#' Count trust triangles across Monte Carlo graph simulations
+#'
+#' @inheritParams countWedges
+#'
+#' @return A list of average and standard-deviation trust-triangle counts.
+#' @export
 countTrustTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   # Number of cell types
   nCells <- length(cellnames)
@@ -79,13 +95,13 @@ countTrustTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) 
   av_triag <- apply(triangletensor, c(1,2,3), mean)
   
   # Compute standard deviation of triangle counts per combination across iterations
-  std_triag <- apply(triangletensor, c(1,2,3), sd)
+  std_triag <- apply(triangletensor, c(1,2,3), stats::sd)
   
   # Compute average total number of trust triangles per iteration
   av_count <- mean(trianglecount)
   
   # Compute standard deviation of total triangles across iterations
-  std_count <- sd(trianglecount)
+  std_count <- stats::sd(trianglecount)
   
   # Return all results as a list
   return(list(
@@ -96,6 +112,12 @@ countTrustTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) 
   ))
 }
 
+#' Count cycle triangles across Monte Carlo graph simulations
+#'
+#' @inheritParams countWedges
+#'
+#' @return A list of average and standard-deviation cycle-triangle counts.
+#' @export
 countCycleTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   # Number of different cell types
   nCells <- length(cellnames)
@@ -131,13 +153,13 @@ countCycleTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) 
   av_triag <- apply(triangletensor, c(1,2,3), mean)
   
   # Compute standard deviation of triangle counts per combination across iterations
-  std_triag <- apply(triangletensor, c(1,2,3), sd)
+  std_triag <- apply(triangletensor, c(1,2,3), stats::sd)
   
   # Compute average total number of cycle triangles per iteration
   av_count <- mean(trianglecount)
   
   # Compute standard deviation of total cycle triangles across iterations
-  std_count <- sd(trianglecount)
+  std_count <- stats::sd(trianglecount)
   
   # Return all results as a list
   return(list(
@@ -148,6 +170,12 @@ countCycleTriangles <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) 
   ))
 }
 
+#' Count direct edges across Monte Carlo graph simulations
+#'
+#' @inheritParams countWedges
+#'
+#' @return A list of average and standard-deviation direct edge counts.
+#' @export
 countDirect <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   # Number of different cell types
   nCells <- length(cellnames)
@@ -187,13 +215,13 @@ countDirect <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   av_dir <- apply(directtensor, c(1,2), mean)
   
   # Compute standard deviation of edges between cell types across iterations
-  std_dir <- apply(directtensor, c(1,2), sd)
+  std_dir <- apply(directtensor, c(1,2), stats::sd)
   
   # Compute average total number of edges across iterations
   av_count <- mean(directCount)
   
   # Compute standard deviation of total edges across iterations
-  std_count <- sd(directCount)
+  std_count <- stats::sd(directCount)
   
   # Return results as a list
   return(list(
@@ -204,6 +232,12 @@ countDirect <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   ))
 }
 
+#' Count GSCC contributions across Monte Carlo graph simulations
+#'
+#' @inheritParams countWedges
+#'
+#' @return A list of average and standard-deviation GSCC contributions.
+#' @export
 countGSCC <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   # Number of different cell types
   nCells <- length(cellnames)
@@ -242,13 +276,13 @@ countGSCC <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
   av_GSCC <- apply(GSCCcounttensor, 1, mean)
   
   # Standard deviation of each cell type's contribution across iterations
-  std_GSCC <- apply(GSCCcounttensor, 1, sd)
+  std_GSCC <- apply(GSCCcounttensor, 1, stats::sd)
   
   # Average fractional size of the GSCC across iterations
   av_count <- mean(GSCCcount)
   
   # Standard deviation of the GSCC size across iterations
-  std_count <- sd(GSCCcount)
+  std_count <- stats::sd(GSCCcount)
   
   # Return all results as a list
   return(list(
@@ -321,10 +355,32 @@ countGSCC <- function(Dcell, Dconn, lig, rec, cellnames, N, av, itNo) {
 #   return(invisible(res))
 # }
 
+#' Run Monte Carlo simulations for one or more patients
+#'
+#' @param Lmatrix Cell-by-ligand compatibility matrix.
+#' @param Rmatrix Cell-by-receptor compatibility matrix.
+#' @param Cmatrix Patient-by-cell-type abundance matrix.
+#' @param LRmatrix Ligand-receptor-by-patient tensor.
+#' @param cells Character vector of cell-type names.
+#' @param communication_type Feature family to simulate (`"D"`, `"W"`, `"TT"`, `"CT"`, or `"GSCC"`).
+#' @param pats Number of patients to process, or `"all"`.
+#' @param N Number of cells per graph.
+#' @param itNo Number of Monte Carlo iterations.
+#' @param av Target average degree.
+#' @param output_folder Directory used to write the `.out` files.
+#' @param file.name Output filename stem.
+#' @param norm Logical; if `TRUE`, use a uniformized LR baseline.
+#' @param patient_idx Optional single patient index to simulate.
+#'
+#' @return Invisibly writes the simulation outputs to disk.
+#' @export
 runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_type, pats = "all",
                    N = 10000, itNo = 100, av = 20, output_folder = NULL, file.name = NULL, norm = FALSE,
                    patient_idx = NULL) {
   
+  if (!is.null(output_folder) && !dir.exists(output_folder)) {
+    dir.create(output_folder, recursive = TRUE)
+  }
   
   cellstring <- paste(cells, collapse = ",")
   
@@ -581,14 +637,42 @@ runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_typ
 #   close(con)
 # }
 
+#' Run the full Monte Carlo RaCInG workflow
+#'
+#' @param counts Gene-by-sample count matrix.
+#' @param output_folder Directory used to write intermediate and output files.
+#' @param deconv Optional deconvolution matrix.
+#' @param cc_network Optional ligand-receptor prior network.
+#' @param fun_LR Function used to combine ligand and receptor expression values.
+#' @param cell_expr_profile Optional cell-type expression profile matrix.
+#' @param source,target Column names to use as ligand and receptor identifiers in `cc_network`.
+#' @param signed Logical; if `TRUE`, also try to load a sign matrix.
+#' @param deconv_method Deconvolution method used when `deconv` is not supplied.
+#' @param cbsx.name,cbsx.token Optional credentials for the deconvolution workflow.
+#' @param pt_idx Optional single patient index to simulate.
+#' @param file_name File stem used for intermediate files.
+#' @param nPatients Number of patients to process, or `"all"`.
+#' @param communication_type Feature family to simulate.
+#' @param Ncells Number of cells per simulated graph.
+#' @param Ngraphs Number of Monte Carlo iterations.
+#' @param Ndegree Target average degree.
+#' @param remove_direction Logical; if `TRUE`, merge directionally equivalent features.
+#' @param norm Logical; if `TRUE`, also run a uniformized baseline simulation for normalization.
+#'
+#' @return A list with the generated inputs and processed feature matrices.
+#' @export
 compute_racing_montecarlo = function(counts, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
                                      cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol", signed = FALSE,
                                      deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, pt_idx = NULL, file_name = NULL,
                                      nPatients = "all", communication_type = "W", Ncells = 10000, Ngraphs = 100, Ndegree = 20, remove_direction = TRUE, norm = TRUE) {
   
-  input_files = prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
-                                   cell_expr_profile = cell_expr_profile, source = source, target = target,
-                                   deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
+  if (is.null(file_name)) {
+    file_name <- "RaCInG_input"
+  }
+
+  prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
+                      cell_expr_profile = cell_expr_profile, source = source, target = target,
+                      deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
 
   res <- generateInput(file_name, output_folder = output_folder, read_signs = signed)
 
@@ -621,11 +705,11 @@ compute_racing_montecarlo = function(counts, output_folder = "~/Documents/racing
     av = Ndegree,
     output_folder = output_folder,
     file.name = file_name,
-    norm = norm,
+    norm = FALSE,
     patient_idx = pt_idx
   )
 
-  if(norm){
+  if (norm) {
     runSim(
       Lmatrix = Lmatrix,
       Rmatrix = Rmatrix,
@@ -639,7 +723,7 @@ compute_racing_montecarlo = function(counts, output_folder = "~/Documents/racing
       av = Ndegree,
       output_folder = output_folder,
       file.name = file_name,
-      norm = norm,
+      norm = TRUE,
       patient_idx = pt_idx
     )
   }

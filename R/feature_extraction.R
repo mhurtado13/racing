@@ -1,10 +1,9 @@
-library(Matrix)
-
-#-------------------------------------------------------------------------------
-# Convert adjacency matrices (assumes EdgetoAdj_No_loop is already defined)
-#-------------------------------------------------------------------------------
-
-# Count trust triangles (unique, no multi-edges)
+#' Count unique trust triangles in a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of trust triangles.
+#' @export
 Find_Number_Trust_Triangles_Unique <- function(Adj) {
   A <- sign(Adj)  # convert to 0/1
   Wedge_matrix <- A %*% A
@@ -14,14 +13,24 @@ Find_Number_Trust_Triangles_Unique <- function(Adj) {
   return(as.integer(NoTriangles))
 }
 
-# Count triangles (multi-edges counted)
+#' Count triangles allowing multi-edges
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of triangles.
+#' @export
 Find_Number_Triangles <- function(Adj) {
   triangle_matrix <- Adj %*% Adj %*% Adj
   No_triangles <- sum(diag(triangle_matrix)) / 3
   return(as.integer(No_triangles))
 }
 
-# Count triangles (unique, multi-edges ignored)
+#' Count unique triangles in a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of unique triangles.
+#' @export
 Find_Number_Triangles_Unique <- function(Adj) {
   A <- sign(Adj)
   triangle_matrix <- A %*% A %*% A
@@ -29,14 +38,24 @@ Find_Number_Triangles_Unique <- function(Adj) {
   return(as.integer(No_triangles))
 }
 
-# Count 2-loops (multi-edges counted)
+#' Count reciprocal 2-loops allowing multi-edges
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of 2-loops.
+#' @export
 Find_Number_2Loops <- function(Adj) {
   loop_matrix <- Adj %*% Adj
   No_loops <- sum(diag(loop_matrix)) / 2
   return(as.integer(No_loops))
 }
 
-# Count 2-loops (unique, multi-edges ignored)
+#' Count unique reciprocal 2-loops
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of unique 2-loops.
+#' @export
 Find_Number_2Loops_Unique <- function(Adj) {
   A <- sign(Adj)
   loop_matrix <- A %*% A
@@ -44,14 +63,24 @@ Find_Number_2Loops_Unique <- function(Adj) {
   return(as.integer(No_loops))
 }
 
-# Count wedges (multi-edges counted)
+#' Count wedges allowing multi-edges
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of wedges.
+#' @export
 Find_Number_Wedges <- function(Adj) {
   wedge_matrix <- Adj %*% Adj
   No_wedges <- sum(wedge_matrix) - sum(diag(wedge_matrix))
   return(as.integer(No_wedges))
 }
 
-# Count wedges (unique, multi-edges ignored)
+#' Count unique wedges in a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer count of unique wedges.
+#' @export
 Find_Number_Wedges_Unique <- function(Adj) {
   A <- sign(Adj)
   wedge_matrix <- A %*% A
@@ -59,7 +88,12 @@ Find_Number_Wedges_Unique <- function(Adj) {
   return(as.integer(No_wedges))
 }
 
-# Outward trust triangles
+#' Enumerate outward trust triangles
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return A list with the triangle count and the vertex triplets found.
+#' @export
 Trust_Triangles <- function(Adj) {
   # Initialize counter for number of triangles
   NoTriangles <- 0
@@ -110,7 +144,12 @@ Trust_Triangles <- function(Adj) {
   ))
 }
 
-# Cycle triangles
+#' Enumerate directed cycle triangles
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return A list with the cycle-triangle count and the vertex triplets found.
+#' @export
 Cycle_Triangles <- function(Adj) {
   # Initialize counter for number of cycle triangles
   NoTriangles <- 0
@@ -172,7 +211,12 @@ Cycle_Triangles <- function(Adj) {
   ))
 }
 
-# Count wedges and produce list
+#' Enumerate wedges in a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return A list with the wedge count and the vertex triplets found.
+#' @export
 Wedges <- function(Adj) {
   # Initialize the count of wedges and a list to store them
   NoWedges <- 0
@@ -205,9 +249,13 @@ Wedges <- function(Adj) {
   return(list(NoWedges = NoWedges, Wedge_list = do.call(rbind, Wedge_list)))
 }
 
-#--------------------------------------------------------------------
-# BFS: Breadth-First Search
-#--------------------------------------------------------------------
+#' Breadth-first search over a graph
+#'
+#' @param Adj Adjacency matrix.
+#' @param root Starting vertex index.
+#'
+#' @return Integer vector of visited vertices.
+#' @keywords internal
 BFS <- function(Adj, root) {
   N <- nrow(Adj)
   seen <- rep(FALSE, N)
@@ -233,9 +281,12 @@ BFS <- function(Adj, root) {
   return(Explored)
 }
 
-#--------------------------------------------------------------------
-# Tarjan's algorithm (iterative) for Strongly Connected Components
-#--------------------------------------------------------------------
+#' Find strongly connected components with Tarjan's algorithm
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return A list of strongly connected components.
+#' @keywords internal
 TarjanIterative <- function(Adj) {
   N <- nrow(Adj)
   index <- rep(NA, N)
@@ -308,9 +359,12 @@ TarjanIterative <- function(Adj) {
   return(groups)
 }
 
-#--------------------------------------------------------------------
-# GSCC: Largest Strongly Connected Component
-#--------------------------------------------------------------------
+#' Extract the giant strongly connected component
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer vector of vertex indices in the GSCC.
+#' @export
 GSCC <- function(Adj) {
   SCCs <- TarjanIterative(Adj)
   sizes <- sapply(SCCs, length)
@@ -318,9 +372,12 @@ GSCC <- function(Adj) {
   return(SCCs[[giant_idx]])
 }
 
-#--------------------------------------------------------------------
-# OUT-component of a graph
-#--------------------------------------------------------------------
+#' Compute the OUT component of a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer vector of vertices in the OUT component.
+#' @export
 OUT <- function(Adj) {
   giant <- GSCC(Adj)
   giant_out <- BFS(Adj, giant[1])
@@ -328,9 +385,12 @@ OUT <- function(Adj) {
   return(Out_component)
 }
 
-#--------------------------------------------------------------------
-# IN-component of a graph
-#--------------------------------------------------------------------
+#' Compute the IN component of a directed graph
+#'
+#' @param Adj Adjacency matrix.
+#'
+#' @return Integer vector of vertices in the IN component.
+#' @export
 IN <- function(Adj) {
   trans <- t(Adj)
   giant <- GSCC(trans)
