@@ -16,7 +16,8 @@ prepare_input_files(
   deconv_method = "Quantiseq",
   cbsx.name = NULL,
   cbsx.token = NULL,
-  file_name = NULL
+  file_name = NULL,
+  signed = FALSE
 )
 }
 \arguments{
@@ -39,10 +40,17 @@ prepare_input_files(
 \item{cbsx.name, cbsx.token}{Optional credentials forwarded to the deconvolution workflow.}
 
 \item{file_name}{File stem used when exporting the generated CSV files.}
+
+\item{signed}{Logical; if \code{TRUE}, also try to load a sign matrix from \code{output_folder}.}
 }
 \value{
-A list containing the generated matrices and the assembled cell-cell table.
+A named list with the processed input matrices and their labels:
+\code{Lmatrix}, \code{Rmatrix}, \code{Cmatrix} (normalised), \code{LRmatrix} (3-D tensor),
+\code{celltypes}, \code{ligands}, \code{receptors}, \code{Sign_matrix}, and \code{CC_table}.
 }
 \description{
-Build RaCInG input files from raw count data
+This function combines the preprocessing and input-loading steps into a single
+call. It generates the \code{L}, \code{R}, \code{C}, and \code{LR} CSV files from raw counts,
+then reads them back to produce the normalised matrices and 3-D tensor required
+by the kernel and Monte Carlo workflows.
 }

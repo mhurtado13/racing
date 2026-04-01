@@ -4,7 +4,7 @@
 \name{RaCInG-package}
 \alias{RaCInG}
 \alias{RaCInG-package}
-\title{RaCInG: R Analysis of Cell Interactions and Graphs}
+\title{RaCInG: Random Cell-cell Interaction Generator}
 \description{
 \code{RaCInG} provides functions to prepare ligand-receptor input matrices,
 generate patient-specific communication graphs, derive kernel or Monte Carlo

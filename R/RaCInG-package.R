@@ -1,4 +1,4 @@
-#' RaCInG: R Analysis of Cell Interactions and Graphs
+#' RaCInG: Random Cell-cell Interaction Generator
 #'
 #' `RaCInG` provides functions to prepare ligand-receptor input matrices,
 #' generate patient-specific communication graphs, derive kernel or Monte Carlo
@@ -42,32 +42,3 @@ utils::globalVariables(
   invisible(TRUE)
 }
 
-#' Resolve cell-type expression profiles
-#'
-#' Internal helper that either returns a supplied expression-profile matrix or
-#' computes it from an `estimate_expression_profiles()` function available in the
-#' current R session.
-#'
-#' @param counts Gene-by-sample count matrix.
-#' @param deconv Deconvolution result matrix.
-#' @param cell_expr_profile Optional precomputed cell-type expression profile.
-#'
-#' @return A data frame of cell-type expression profiles.
-#' @keywords internal
-.resolve_expression_profiles <- function(counts, deconv, cell_expr_profile = NULL) {
-  if (!is.null(cell_expr_profile)) {
-    return(cell_expr_profile)
-  }
-
-  estimator <- get0("estimate_expression_profiles", mode = "function")
-  if (is.null(estimator)) {
-    stop(
-      "`cell_expr_profile` must be supplied, or a compatible ",
-      "`estimate_expression_profiles()` function must be available in the session.",
-      call. = FALSE
-    )
-  }
-
-  expr_counts <- estimator(counts, deconv)
-  rbind(sapply(expr_counts, function(x) colMeans(x))) %>% as.data.frame()
-}

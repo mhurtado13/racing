@@ -639,7 +639,8 @@ runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_typ
 
 #' Run the full Monte Carlo RaCInG workflow
 #'
-#' @param counts Gene-by-sample count matrix.
+#' @param counts Gene-by-sample count matrix. Required when `input_data` is not
+#'   supplied; ignored otherwise.
 #' @param output_folder Directory used to write intermediate and output files.
 #' @param deconv Optional deconvolution matrix.
 #' @param cc_network Optional ligand-receptor prior network.
@@ -658,23 +659,37 @@ runSim <- function(Lmatrix, Rmatrix, Cmatrix, LRmatrix, cells, communication_typ
 #' @param Ndegree Target average degree.
 #' @param remove_direction Logical; if `TRUE`, merge directionally equivalent features.
 #' @param norm Logical; if `TRUE`, also run a uniformized baseline simulation for normalization.
+#' @param input_data Optional named list of pre-computed input matrices as returned
+#'   by [prepare_input_files()].
+#'   Must contain `Lmatrix`, `Rmatrix`, `Cmatrix`, `LRmatrix`, `celltypes`,
+#'   `ligands`, and `receptors`.
+#'   When supplied, the `counts` argument and all preprocessing parameters
+#'   (`deconv`, `cc_network`, etc.) are ignored.
 #'
 #' @return A list with the generated inputs and processed feature matrices.
 #' @export
-compute_racing_montecarlo = function(counts, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
+compute_racing_montecarlo = function(counts = NULL, output_folder = "~/Documents/racing/vignettes/", deconv = NULL, cc_network = NULL, fun_LR = min, 
                                      cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol", signed = FALSE,
                                      deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, pt_idx = NULL, file_name = NULL,
-                                     nPatients = "all", communication_type = "W", Ncells = 10000, Ngraphs = 100, Ndegree = 20, remove_direction = TRUE, norm = TRUE) {
+                                     nPatients = "all", communication_type = "W", Ncells = 10000, Ngraphs = 100, Ndegree = 20, remove_direction = TRUE, norm = TRUE,
+                                     input_data = NULL) {
   
   if (is.null(file_name)) {
     file_name <- "RaCInG_input"
   }
 
-  prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
-                      cell_expr_profile = cell_expr_profile, source = source, target = target,
-                      deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name)
-
-  res <- generateInput(file_name, output_folder = output_folder, read_signs = signed)
+  if (!is.null(input_data)) {
+    cat("Using pre-computed input matrices; skipping input generation.\n")
+    res <- input_data
+  } else {
+    if (is.null(counts)) {
+      stop("Either 'counts' or 'input_data' must be provided.", call. = FALSE)
+    }
+    res <- prepare_input_files(counts, output_folder = output_folder, deconv = deconv, cc_network = cc_network, fun_LR = fun_LR, 
+                               cell_expr_profile = cell_expr_profile, source = source, target = target,
+                               deconv_method = deconv_method, cbsx.name = cbsx.name, cbsx.token = cbsx.token, file_name = file_name,
+                               signed = signed)
+  }
 
   Lmatrix   <- res$Lmatrix
   Rmatrix   <- res$Rmatrix

@@ -227,6 +227,10 @@ Read_Lig_Rec_Interaction <- function(filename) {
 
 #' Load RaCInG input matrices from disk
 #'
+#' Internal helper called by [prepare_input_files()] to read back the generated
+#' CSV files and assemble the normalised matrices and 3-D tensor.
+#' Users should call [prepare_input_files()] instead.
+#'
 #' @param file_name File stem used for the `Lmatrix_`, `Rmatrix_`, `Cmatrix_`, and
 #'   `LRmatrix_` CSV files.
 #' @param output_folder Directory containing the exported input files.
@@ -234,7 +238,7 @@ Read_Lig_Rec_Interaction <- function(filename) {
 #'   from `output_folder`.
 #'
 #' @return A named list containing the input matrices and their labels.
-#' @export
+#' @keywords internal
 generateInput <- function(file_name, output_folder, read_signs = FALSE) {
   
   # -----------------------------
@@ -321,6 +325,11 @@ generateInput <- function(file_name, output_folder, read_signs = FALSE) {
 
 #' Build RaCInG input files from raw count data
 #'
+#' This function combines the preprocessing and input-loading steps into a single
+#' call. It generates the `L`, `R`, `C`, and `LR` CSV files from raw counts,
+#' then reads them back to produce the normalised matrices and 3-D tensor required
+#' by the kernel and Monte Carlo workflows.
+#'
 #' @param counts Gene-by-sample count matrix.
 #' @param output_folder Directory where the generated `L`, `R`, `C`, and `LR` files are written.
 #' @param deconv Optional deconvolution matrix. If omitted, the function will try to compute it.
@@ -331,12 +340,16 @@ generateInput <- function(file_name, output_folder, read_signs = FALSE) {
 #' @param deconv_method Deconvolution method passed to `multideconv::compute.deconvolution()`.
 #' @param cbsx.name,cbsx.token Optional credentials forwarded to the deconvolution workflow.
 #' @param file_name File stem used when exporting the generated CSV files.
+#' @param signed Logical; if `TRUE`, also try to load a sign matrix from `output_folder`.
 #'
-#' @return A list containing the generated matrices and the assembled cell-cell table.
+#' @return A named list with the processed input matrices and their labels:
+#'   `Lmatrix`, `Rmatrix`, `Cmatrix` (normalised), `LRmatrix` (3-D tensor),
+#'   `celltypes`, `ligands`, `receptors`, `Sign_matrix`, and `CC_table`.
 #' @export
 prepare_input_files <- function(counts, output_folder = "Results/", deconv = NULL, cc_network = NULL, fun_LR = min, 
                                 cell_expr_profile = NULL, source = "source_genesymbol", target = "target_genesymbol",
-                                deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL){
+                                deconv_method = "Quantiseq", cbsx.name = NULL, cbsx.token = NULL, file_name = NULL,
+                                signed = FALSE){
   
   if (is.null(file_name)) {
     file_name <- "RaCInG_input"
@@ -363,11 +376,10 @@ prepare_input_files <- function(counts, output_folder = "Results/", deconv = NUL
   
   ## Cell type expression profiles
   cat("\nEstimating cell type expression profiles...\n")
-  cell_expr_profile <- .resolve_expression_profiles(
-    counts = counts,
-    deconv = deconv,
-    cell_expr_profile = cell_expr_profile
-  )
+  if (!is.null(cell_expr_profile)) {
+    cell_expr_profile <- multideconv::estimate_expression_profiles(counts, deconv)
+    cell_expr_profile = rbind(sapply(cell_expr_profile, function(x) colMeans(x))) %>% as.data.frame()
+  }
 
   ## Verify if patients names match between files
   if(!all(rownames(deconv) %in% colnames(counts))){
@@ -468,11 +480,16 @@ prepare_input_files <- function(counts, output_folder = "Results/", deconv = NUL
   utils::write.csv(ccc_table, file.path(output_folder, paste0("CC_table_", file_name, ".csv")), row.names = FALSE)
   
   cat("Input files generated and saved to:", output_folder, "\n")
-  list(
-    Lmatrix = Lmatrix,
-    Rmatrix = Rmatrix,
-    Cmatrix = deconv,
-    LRmatrix = LR_matrix,
-    CC_table = ccc_table
-  )
+
+  ## Read the written CSVs back through generateInput to obtain the
+
+  ## normalised matrices and 3-D tensor expected by downstream functions.
+  cat("Processing input matrices...\n")
+  processed <- generateInput(file_name, output_folder = output_folder,
+                             read_signs = signed)
+
+  ## Append the CC table to the processed result
+  processed$CC_table <- ccc_table
+
+  return(processed)
 }

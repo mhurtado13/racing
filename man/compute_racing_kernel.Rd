@@ -5,7 +5,7 @@
 \title{Run the full kernel-based RaCInG workflow}
 \usage{
 compute_racing_kernel(
-  counts,
+  counts = NULL,
   output_folder = "~/Documents/racing/vignettes/",
   deconv = NULL,
   cc_network = NULL,
@@ -22,11 +22,13 @@ compute_racing_kernel(
   communication_type = "W",
   norm = TRUE,
   pt_idx = NULL,
-  remove_direction = TRUE
+  remove_direction = TRUE,
+  input_data = NULL
 )
 }
 \arguments{
-\item{counts}{Gene-by-sample count matrix.}
+\item{counts}{Gene-by-sample count matrix. Required when \code{input_data} is not
+supplied; ignored otherwise.}
 
 \item{output_folder}{Directory used to write and read intermediate input files.}
 
@@ -57,6 +59,13 @@ compute_racing_kernel(
 \item{pt_idx}{Optional single patient index to process.}
 
 \item{remove_direction}{Logical; if \code{TRUE}, merge directionally equivalent features.}
+
+\item{input_data}{Optional named list of pre-computed input matrices as returned
+by \code{\link[=prepare_input_files]{prepare_input_files()}}.
+Must contain \code{Lmatrix}, \code{Rmatrix}, \code{Cmatrix}, \code{LRmatrix}, \code{celltypes},
+\code{ligands}, and \code{receptors}.
+When supplied, the \code{counts} argument and all preprocessing parameters
+(\code{deconv}, \code{cc_network}, etc.) are ignored.}
 }
 \value{
 A list with the kernel arrays and the derived feature matrix.

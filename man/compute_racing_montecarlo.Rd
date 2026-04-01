@@ -5,7 +5,7 @@
 \title{Run the full Monte Carlo RaCInG workflow}
 \usage{
 compute_racing_montecarlo(
-  counts,
+  counts = NULL,
   output_folder = "~/Documents/racing/vignettes/",
   deconv = NULL,
   cc_network = NULL,
@@ -25,11 +25,13 @@ compute_racing_montecarlo(
   Ngraphs = 100,
   Ndegree = 20,
   remove_direction = TRUE,
-  norm = TRUE
+  norm = TRUE,
+  input_data = NULL
 )
 }
 \arguments{
-\item{counts}{Gene-by-sample count matrix.}
+\item{counts}{Gene-by-sample count matrix. Required when \code{input_data} is not
+supplied; ignored otherwise.}
 
 \item{output_folder}{Directory used to write intermediate and output files.}
 
@@ -66,6 +68,13 @@ compute_racing_montecarlo(
 \item{remove_direction}{Logical; if \code{TRUE}, merge directionally equivalent features.}
 
 \item{norm}{Logical; if \code{TRUE}, also run a uniformized baseline simulation for normalization.}
+
+\item{input_data}{Optional named list of pre-computed input matrices as returned
+by \code{\link[=prepare_input_files]{prepare_input_files()}}.
+Must contain \code{Lmatrix}, \code{Rmatrix}, \code{Cmatrix}, \code{LRmatrix}, \code{celltypes},
+\code{ligands}, and \code{receptors}.
+When supplied, the \code{counts} argument and all preprocessing parameters
+(\code{deconv}, \code{cc_network}, etc.) are ignored.}
 }
 \value{
 A list with the generated inputs and processed feature matrices.

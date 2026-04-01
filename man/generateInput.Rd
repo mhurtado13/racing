@@ -19,5 +19,8 @@ from \code{output_folder}.}
 A named list containing the input matrices and their labels.
 }
 \description{
-Load RaCInG input matrices from disk
+Internal helper called by \code{\link[=prepare_input_files]{prepare_input_files()}} to read back the generated
+CSV files and assemble the normalised matrices and 3-D tensor.
+Users should call \code{\link[=prepare_input_files]{prepare_input_files()}} instead.
 }
+\keyword{internal}
