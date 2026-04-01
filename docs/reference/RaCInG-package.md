@@ -1,4 +1,4 @@
-# RaCInG: R Analysis of Cell Interactions and Graphs
+# RaCInG: Random Cell-cell Interaction Generator
 
 `RaCInG` provides functions to prepare ligand-receptor input matrices,
 generate patient-specific communication graphs, derive kernel or Monte

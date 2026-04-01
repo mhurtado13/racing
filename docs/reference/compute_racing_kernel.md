@@ -6,7 +6,7 @@ Run the full kernel-based RaCInG workflow
 
 ``` r
 compute_racing_kernel(
-  counts,
+  counts = NULL,
   output_folder = "~/Documents/racing/vignettes/",
   deconv = NULL,
   cc_network = NULL,
@@ -23,7 +23,8 @@ compute_racing_kernel(
   communication_type = "W",
   norm = TRUE,
   pt_idx = NULL,
-  remove_direction = TRUE
+  remove_direction = TRUE,
+  input_data = NULL
 )
 ```
 
@@ -31,7 +32,8 @@ compute_racing_kernel(
 
 - counts:
 
-  Gene-by-sample count matrix.
+  Gene-by-sample count matrix. Required when `input_data` is not
+  supplied; ignored otherwise.
 
 - output_folder:
 
@@ -93,6 +95,15 @@ compute_racing_kernel(
 - remove_direction:
 
   Logical; if `TRUE`, merge directionally equivalent features.
+
+- input_data:
+
+  Optional named list of pre-computed input matrices as returned by
+  [`prepare_input_files()`](https://mhurtado13.github.io/racing/reference/prepare_input_files.md).
+  Must contain `Lmatrix`, `Rmatrix`, `Cmatrix`, `LRmatrix`, `celltypes`,
+  `ligands`, and `receptors`. When supplied, the `counts` argument and
+  all preprocessing parameters (`deconv`, `cc_network`, etc.) are
+  ignored.
 
 ## Value
 

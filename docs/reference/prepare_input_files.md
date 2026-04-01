@@ -1,6 +1,9 @@
 # Build RaCInG input files from raw count data
 
-Build RaCInG input files from raw count data
+This function combines the preprocessing and input-loading steps into a
+single call. It generates the `L`, `R`, `C`, and `LR` CSV files from raw
+counts, then reads them back to produce the normalised matrices and 3-D
+tensor required by the kernel and Monte Carlo workflows.
 
 ## Usage
 
@@ -17,7 +20,8 @@ prepare_input_files(
   deconv_method = "Quantiseq",
   cbsx.name = NULL,
   cbsx.token = NULL,
-  file_name = NULL
+  file_name = NULL,
+  signed = FALSE
 )
 ```
 
@@ -67,7 +71,13 @@ prepare_input_files(
 
   File stem used when exporting the generated CSV files.
 
+- signed:
+
+  Logical; if `TRUE`, also try to load a sign matrix from
+  `output_folder`.
+
 ## Value
 
-A list containing the generated matrices and the assembled cell-cell
-table.
+A named list with the processed input matrices and their labels:
+`Lmatrix`, `Rmatrix`, `Cmatrix` (normalised), `LRmatrix` (3-D tensor),
+`celltypes`, `ligands`, `receptors`, `Sign_matrix`, and `CC_table`.

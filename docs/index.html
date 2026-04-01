@@ -46,11 +46,13 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="racing">RaCInG<a class="anchor" aria-label="anchor" href="#racing"></a>
 </h1></div>
+</div>
+<div class="section level1">
+<h1 id="racing-1">RaCInG<a class="anchor" aria-label="anchor" href="#racing-1"></a>
+</h1>
 <p><a href="https://github.com/mhurtado13/racing/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/mhurtado13/racing/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://github.com/mhurtado13/racing/actions/workflows/pkgdown.yaml" class="external-link"><img src="https://github.com/mhurtado13/racing/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></p>
-<p><strong>RaCInG</strong> (<strong>R</strong> Analysis of <strong>C</strong>ell <strong>In</strong>teractions and <strong>G</strong>raphs) reconstructs patient-specific cell-cell communication networks from bulk RNA-seq data and extracts network-level features using either a kernel-based or Monte Carlo workflow.</p>
-<div class="section level2">
-<h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
-</h2>
+<p><strong>RaCInG</strong> (<strong>Ra</strong>ndom <strong>C</strong>ell-cell <strong>In</strong>teraction <strong>G</strong>enerator) reconstructs patient-specific cell-cell communication networks from bulk RNA-seq data and extracts network-level features using either a kernel-based or Monte Carlo workflow.</p>
+<p>random cell-cell interaction generator ## Installation</p>
 <div class="section level3">
 <h3 id="install-from-github">Install from GitHub<a class="anchor" aria-label="anchor" href="#install-from-github"></a>
 </h3>
@@ -75,15 +77,14 @@
 <span><span class="co"># Additional optional packages used by the full preprocessing workflow:</span></span>
 <span><span class="co"># ADImpute, multideconv, liana</span></span></code></pre></div>
 </div>
-</div>
 <div class="section level2">
 <h2 id="workflow-at-a-glance">Workflow at a glance<a class="anchor" aria-label="anchor" href="#workflow-at-a-glance"></a>
 </h2>
 <table class="table">
 <colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
+<col width="30%">
+<col width="24%">
+<col width="45%">
 </colgroup>
 <thead><tr class="header">
 <th>Goal</th>
@@ -92,27 +93,21 @@
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Build inputs from raw counts</td>
+<td>Build input matrices from raw counts</td>
 <td><code><a href="reference/prepare_input_files.html">prepare_input_files()</a></code></td>
-<td>
-<code>L</code>, <code>R</code>, <code>C</code>, and <code>LR</code> matrices</td>
+<td>Named list with <code>L</code>, <code>R</code>, <code>C</code>, <code>LR</code> matrices and labels</td>
 </tr>
 <tr class="even">
-<td>Load prepared matrices</td>
-<td><code><a href="reference/generateInput.html">generateInput()</a></code></td>
-<td>Named list of matrices and labels</td>
-</tr>
-<tr class="odd">
 <td>Run deterministic features</td>
 <td><code><a href="reference/compute_racing_kernel.html">compute_racing_kernel()</a></code></td>
 <td>Kernel arrays + feature matrix</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Run simulation-based features</td>
 <td><code><a href="reference/compute_racing_montecarlo.html">compute_racing_montecarlo()</a></code></td>
 <td>Monte Carlo summaries</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Compare patient groups</td>
 <td><code><a href="reference/wilcox_group_test.html">wilcox_group_test()</a></code></td>
 <td>Statistics table for downstream plots</td>
@@ -126,11 +121,14 @@
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mhurtado13/racing" class="external-link">RaCInG</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/generateInput.html">generateInput</a></span><span class="op">(</span></span>
-<span>  file_name <span class="op">=</span> <span class="st">"example"</span>,</span>
-<span>  output_folder <span class="op">=</span> <span class="st">"Results/"</span></span>
+<span><span class="co"># Build input matrices from raw counts</span></span>
+<span><span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/prepare_input_files.html">prepare_input_files</a></span><span class="op">(</span></span>
+<span>  counts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
+<span>  output_folder <span class="op">=</span> <span class="st">"Results/"</span>,</span>
+<span>  file_name <span class="op">=</span> <span class="st">"example"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Run kernel method (from raw counts)</span></span>
 <span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
 <span>  counts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
 <span>  file_name <span class="op">=</span> <span class="st">"example"</span>,</span>
@@ -138,8 +136,15 @@
 <span>  communication_type <span class="op">=</span> <span class="st">"W"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
+<span><span class="co"># Or pass pre-computed inputs to skip preprocessing</span></span>
+<span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
+<span>  input_data <span class="op">=</span> <span class="va">input</span>,</span>
+<span>  communication_type <span class="op">=</span> <span class="st">"W"</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Monte Carlo method</span></span>
 <span><span class="va">mc_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/compute_racing_montecarlo.html">compute_racing_montecarlo</a></span><span class="op">(</span></span>
-<span>  counts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
+<span>  input_data <span class="op">=</span> <span class="va">input</span>,</span>
 <span>  file_name <span class="op">=</span> <span class="st">"example"</span>,</span>
 <span>  output_folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
@@ -168,12 +173,8 @@
 <p>van Santvoort M, Lapuente-Santana Ó, Zopoglou M, Zackl C, Finotello F, van der Hoorn P &amp; Eduati F (2025). <em>Mathematically mapping the network of cells in the tumor microenvironment.</em> Cell Reports Methods, 5(2), 100985.</p>
 </blockquote>
 </div>
-<div class="section level2">
-<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
-</h2>
-<p>This package is distributed under the MIT License. See <a href="LICENSE">LICENSE</a> for details.</p>
 </div>
-</div>
+
   </main><aside class="col-md-3"><div class="links">
 <h2 data-toc-skip>Links</h2>
 <ul class="list-unstyled">

@@ -4,8 +4,6 @@
 
 - [`prepare_input_files()`](https://mhurtado13.github.io/racing/reference/prepare_input_files.md)
   : Build RaCInG input files from raw count data
-- [`generateInput()`](https://mhurtado13.github.io/racing/reference/generateInput.md)
-  : Load RaCInG input matrices from disk
 - [`compute_racing_kernel()`](https://mhurtado13.github.io/racing/reference/compute_racing_kernel.md)
   : Run the full kernel-based RaCInG workflow
 - [`compute_racing_montecarlo()`](https://mhurtado13.github.io/racing/reference/compute_racing_montecarlo.md)
@@ -101,6 +99,11 @@
   Compute the IN component of a directed graph
 - [`OUT()`](https://mhurtado13.github.io/racing/reference/OUT.md) :
   Compute the OUT component of a directed graph
+
+## Example data
+
+- [`skcm_example`](https://mhurtado13.github.io/racing/reference/skcm_example.md)
+  : SKCM melanoma example input for RaCInG
 
 ## Statistics and I/O
 

@@ -115,28 +115,22 @@ counts, install the optional preprocessing dependencies used by
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Build input files from raw counts</td>
+<td>Build input matrices from raw counts</td>
 <td><code><a href="../reference/prepare_input_files.html">prepare_input_files()</a></code></td>
-<td>
-<code>L</code>, <code>R</code>, <code>C</code>, and <code>LR</code>
-matrices</td>
+<td>Named list with <code>L</code>, <code>R</code>, <code>C</code>,
+<code>LR</code> matrices and labels</td>
 </tr>
 <tr class="even">
-<td>Load prepared inputs</td>
-<td><code><a href="../reference/generateInput.html">generateInput()</a></code></td>
-<td>Named list of matrices and labels</td>
-</tr>
-<tr class="odd">
 <td>Compute deterministic features</td>
 <td><code><a href="../reference/compute_racing_kernel.html">compute_racing_kernel()</a></code></td>
 <td>Kernel arrays + feature matrix</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Compute simulation summaries</td>
 <td><code><a href="../reference/compute_racing_montecarlo.html">compute_racing_montecarlo()</a></code></td>
 <td>Processed Monte Carlo results</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Compare clinical groups</td>
 <td><code><a href="../reference/wilcox_group_test.html">wilcox_group_test()</a></code></td>
 <td>Statistics table and volcano plot</td>
@@ -148,15 +142,15 @@ matrices</td>
 <h2 id="recommended-workflow">Recommended workflow<a class="anchor" aria-label="anchor" href="#recommended-workflow"></a>
 </h2>
 <div class="section level3">
-<h3 id="start-from-prepared-input-matrices">1. Start from prepared input matrices<a class="anchor" aria-label="anchor" href="#start-from-prepared-input-matrices"></a>
+<h3 id="build-input-matrices-from-raw-counts">1. Build input matrices from raw counts<a class="anchor" aria-label="anchor" href="#build-input-matrices-from-raw-counts"></a>
 </h3>
-<p>If you already have precomputed <code>L</code>, <code>R</code>,
-<code>C</code>, and <code>LR</code> matrices, load them with
-<code><a href="../reference/generateInput.html">generateInput()</a></code>.</p>
+<p>Use <code><a href="../reference/prepare_input_files.html">prepare_input_files()</a></code> to generate, save, and load
+the input matrices in a single call.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generateInput.html">generateInput</a></span><span class="op">(</span></span>
-<span>  file_name <span class="op">=</span> <span class="st">"SKCM"</span>,</span>
-<span>  output_folder <span class="op">=</span> <span class="st">"Results/"</span></span>
+<code class="sourceCode R"><span><span class="va">input</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/prepare_input_files.html">prepare_input_files</a></span><span class="op">(</span></span>
+<span>  counts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
+<span>  output_folder <span class="op">=</span> <span class="st">"Results/"</span>,</span>
+<span>  file_name <span class="op">=</span> <span class="st">"SKCM"</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">input</span><span class="op">)</span></span></code></pre></div>
@@ -165,12 +159,22 @@ matrices</td>
 <h3 id="run-the-kernel-method">2. Run the kernel method<a class="anchor" aria-label="anchor" href="#run-the-kernel-method"></a>
 </h3>
 <p>The kernel method is the fastest way to derive direct, wedge,
-triangle, or GSCC features across patients.</p>
+triangle, or GSCC features across patients. You can pass
+<code>counts</code> to let the function compute inputs automatically, or
+supply previously computed matrices via <code>input_data</code>.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="co"># Option A: from raw counts (runs prepare_input_files internally)</span></span>
+<span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
 <span>  counts <span class="op">=</span> <span class="va">counts_matrix</span>,</span>
 <span>  output_folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  file_name <span class="op">=</span> <span class="st">"SKCM"</span>,</span>
+<span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
+<span>  norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Option B: from pre-computed input matrices (skips preprocessing)</span></span>
+<span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
+<span>  input_data <span class="op">=</span> <span class="va">input</span>,</span>
 <span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
 <span>  norm <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -181,7 +185,8 @@ triangle, or GSCC features across patients.</p>
 <h3 id="run-the-monte-carlo-method">3. Run the Monte Carlo method<a class="anchor" aria-label="anchor" href="#run-the-monte-carlo-method"></a>
 </h3>
 <p>Use the Monte Carlo workflow when you want simulation-based summaries
-or uncertainty estimates from repeated graph realizations.</p>
+or uncertainty estimates from repeated graph realizations. The same
+<code>input_data</code> shortcut is available here.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">mc_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_montecarlo.html">compute_racing_montecarlo</a></span><span class="op">(</span></span>
@@ -190,6 +195,18 @@ or uncertainty estimates from repeated graph realizations.</p>
 <span>  deconv_method <span class="op">=</span> <span class="st">"Quantiseq"</span>,</span>
 <span>  file_name <span class="op">=</span> <span class="st">"SKCM"</span>,</span>
 <span>  nPatients <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
+<span>  Ncells <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  Ngraphs <span class="op">=</span> <span class="fl">10</span>,</span>
+<span>  Ndegree <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># Or from pre-computed inputs:</span></span>
+<span><span class="va">mc_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_montecarlo.html">compute_racing_montecarlo</a></span><span class="op">(</span></span>
+<span>  input_data <span class="op">=</span> <span class="va">input</span>,</span>
+<span>  output_folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  file_name <span class="op">=</span> <span class="st">"SKCM"</span>,</span>
 <span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
 <span>  Ncells <span class="op">=</span> <span class="fl">100</span>,</span>
 <span>  Ngraphs <span class="op">=</span> <span class="fl">10</span>,</span>
@@ -218,11 +235,68 @@ built-in Wilcoxon workflow to compare groups.</p>
 <li>
 <code><a href="../reference/compute_racing_kernel.html">compute_racing_kernel()</a></code> and
 <code><a href="../reference/compute_racing_montecarlo.html">compute_racing_montecarlo()</a></code> are the main entry points.</li>
+<li>Both accept an <code>input_data</code> argument with pre-computed
+matrices (as returned by <code><a href="../reference/prepare_input_files.html">prepare_input_files()</a></code>), which
+skips all preprocessing.</li>
 <li>
 <code><a href="../reference/prepare_input_files.html">prepare_input_files()</a></code> requires extra packages for
 deconvolution and prior-network assembly.</li>
 <li>The original Python implementation is available at <a href="https://github.com/SysBioOncology/RaCInG" class="external-link uri">https://github.com/SysBioOncology/RaCInG</a>.</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="running-with-the-bundled-example-data">Running with the bundled example data<a class="anchor" aria-label="anchor" href="#running-with-the-bundled-example-data"></a>
+</h2>
+<p>The package ships with <code>skcm_example</code>, a pre-processed
+named list derived from 10 TCGA SKCM melanoma patients. It can be passed
+directly to the kernel or Monte Carlo workflows via the
+<code>input_data</code> parameter.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/mhurtado13/racing" class="external-link">RaCInG</a></span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="va">skcm_example</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">skcm_example</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; List of 8</span></span>
+<span><span class="co">#&gt;  $ Lmatrix    : num [1:9, 1:276] 1 0 1 1 1 1 1 1 0 1 ...</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
+<span><span class="co">#&gt;  $ Rmatrix    : num [1:9, 1:298] 1 0 1 1 0 1 1 1 0 0 ...</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
+<span><span class="co">#&gt;  $ Cmatrix    : num [1:10, 1:9] 0.00374 0.01407 0.02119 0 0.00313 ...</span></span>
+<span><span class="co">#&gt;   ..- attr(*, "dimnames")=List of 2</span></span>
+<span><span class="co">#&gt;  $ LRmatrix   : num [1:276, 1:298, 1:10] 0.000228 0 0 0 0 ...</span></span>
+<span><span class="co">#&gt;  $ celltypes  : chr [1:9] "B" "CAF" "CD8+ T" "DC" ...</span></span>
+<span><span class="co">#&gt;  $ ligands    : chr [1:276] "LGALS9" "ADAM10" "TNFSF12" "ICOSLG" ...</span></span>
+<span><span class="co">#&gt;  $ receptors  : chr [1:298] "PTPRC" "MET" "CD44" "LRP1" ...</span></span>
+<span><span class="co">#&gt;  $ Sign_matrix: num [1:276, 1:298] 0 0 0 0 0 0 0 0 0 0 ...</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="kernel-method-on-the-example-data">Kernel method on the example data<a class="anchor" aria-label="anchor" href="#kernel-method-on-the-example-data"></a>
+</h3>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">kernel_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_kernel.html">compute_racing_kernel</a></span><span class="op">(</span></span>
+<span>  input_data   <span class="op">=</span> <span class="va">skcm_example</span>,</span>
+<span>  output_folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
+<span>  norm <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">kernel_res</span><span class="op">$</span><span class="va">features</span><span class="op">[</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="monte-carlo-method-on-the-example-data">Monte Carlo method on the example data<a class="anchor" aria-label="anchor" href="#monte-carlo-method-on-the-example-data"></a>
+</h3>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">mc_res</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compute_racing_montecarlo.html">compute_racing_montecarlo</a></span><span class="op">(</span></span>
+<span>  input_data   <span class="op">=</span> <span class="va">skcm_example</span>,</span>
+<span>  output_folder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  file_name     <span class="op">=</span> <span class="st">"skcm_example"</span>,</span>
+<span>  nPatients     <span class="op">=</span> <span class="fl">2</span>,</span>
+<span>  communication_type <span class="op">=</span> <span class="st">"W"</span>,</span>
+<span>  Ncells  <span class="op">=</span> <span class="fl">100</span>,</span>
+<span>  Ngraphs <span class="op">=</span> <span class="fl">5</span>,</span>
+<span>  Ndegree <span class="op">=</span> <span class="fl">3</span>,</span>
+<span>  norm    <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>
