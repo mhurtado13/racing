@@ -38,6 +38,9 @@ Suggests:
     rmarkdown,
     roxygen2
 VignetteBuilder: knitr
+Remotes:
+    saezlab/liana,
+    VeraPancaldiLab/multideconv
 Config/Needs/website: pkgdown
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
