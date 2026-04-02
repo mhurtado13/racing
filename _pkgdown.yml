@@ -8,9 +8,12 @@ home:
 
 navbar:
   structure:
-    left: [intro, reference, articles]
+    left: [intro, reference, get-started]
     right: [github]
   components:
+    get-started:
+      text: Get Started
+      href: articles/RaCiNG.html
     github:
       icon: fa-github
       href: https://github.com/mhurtado13/racing
