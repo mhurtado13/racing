@@ -1,8 +1,6 @@
 RaCInG
 ================
 
-# RaCInG
-
 [![R-CMD-check](https://github.com/mhurtado13/racing/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mhurtado13/racing/actions/workflows/R-CMD-check.yaml)
 [![pkgdown](https://github.com/mhurtado13/racing/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/mhurtado13/racing/actions/workflows/pkgdown.yaml)
 
