@@ -106,8 +106,8 @@ If you use this package, please cite the RaCInG publication:
 
 This R package implementation was developed by [Marcelo
 Hurtado](https://github.com/mhurtado13) from the [Pancaldi
-team](https://www.crct-inserm.fr/en/equipe/pancaldi/), led by Vera
-Pancaldi. Marcelo is currently the primary maintainer of the package.
+team](https://github.com/VeraPancaldiLab), led by Vera Pancaldi. Marcelo
+is currently the primary maintainer of the package.
 
 # Package index
 
