@@ -100,3 +100,7 @@ If you use this package, please cite the RaCInG publication:
 > van der Hoorn P & Eduati F (2025). *Mathematically mapping the network of cells
 > in the tumor microenvironment.* Cell Reports Methods, 5(2), 100985.
 
+## R Package Development
+
+This R package implementation was developed by [Marcelo Hurtado](https://github.com/mhurtado13) from the [Pancaldi team](https://www.crct-inserm.fr/en/equipe/pancaldi/). Marcelo is currently the primary maintainer of the package.
+
