@@ -102,5 +102,5 @@ If you use this package, please cite the RaCInG publication:
 
 ## R Package Development
 
-This R package implementation was developed by [Marcelo Hurtado](https://github.com/mhurtado13) from the [Pancaldi team](https://www.crct-inserm.fr/en/equipe/pancaldi/). Marcelo is currently the primary maintainer of the package.
+This R package implementation was developed by [Marcelo Hurtado](https://github.com/mhurtado13) from the [Pancaldi team](https://www.crct-inserm.fr/en/equipe/pancaldi/), led by Vera Pancaldi. Marcelo is currently the primary maintainer of the package.
 
